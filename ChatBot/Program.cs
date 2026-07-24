@@ -12,6 +12,26 @@ Console.WriteLine();
 
 var mensajes = new List<ChatMessage>();
 
+var systemPromptGeneral = """
+    Eres un asistente que responde preguntas generales.
+    Debes responder en español.
+    Las respuestas deben ser en texto plano, no usar formatos como markdown.
+    """;
+
+var systemPromptCSharp = """
+    Eres un asistente experto en c# y .NET.
+    Debes responder en español y dando ejemplos.
+    Las respuestas deben ser en texto plano, no usar formatos como markdown.
+    """;
+
+var systemPromptPython = """
+    Eres un asistente experto en Python.
+    Debes responder en español y dando ejemplos.
+    Las respuestas deben ser en texto plano, no usar formatos como markdown.
+    """;
+
+mensajes.Add(new SystemChatMessage(systemPromptCSharp));
+
 while (true)
 {
     Console.ForegroundColor = ConsoleColor.Blue;
