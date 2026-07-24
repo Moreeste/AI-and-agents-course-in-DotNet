@@ -1,5 +1,6 @@
 ﻿using ChatBot;
 using OpenAI.Chat;
+using System.Text;
 
 Utilidades.CargarVariablesDeEntorno();
 
@@ -34,6 +35,7 @@ mensajes.Add(new SystemChatMessage(systemPromptCSharp));
 
 while (true)
 {
+    var sb = new StringBuilder();
     Console.ForegroundColor = ConsoleColor.Blue;
     Console.Write("Tú: ");
     var entrada = Console.ReadLine();
@@ -47,11 +49,21 @@ while (true)
     mensajes.Add(new UserChatMessage(entrada));
 
     Console.WriteLine();
+    Console.Write($"AI: ");
 
-    var respuesta = await cliente.CompleteChatAsync(mensajes);
-    var respuestaAI = respuesta.Value.Content[0].Text;
-    mensajes.Add(new AssistantChatMessage(respuestaAI));
+    var stream = cliente.CompleteChatStreamingAsync(mensajes);
 
-    Console.WriteLine($"AI: {respuestaAI}");
+    await foreach (var actualizacion in stream)
+    {
+        foreach (var contenido in actualizacion.ContentUpdate)
+        {
+            sb.Append(contenido.Text);
+            Console.Write(contenido.Text);
+        }
+    }
+
+    mensajes.Add(new AssistantChatMessage(sb.ToString()));
+
+    Console.WriteLine();
     Console.WriteLine();
 }
