@@ -19,21 +19,27 @@ namespace ChatBot
                 };
 
                 return cliente.AsBuilder()
-                .Use(async (mensajes, opciones, next, cancellationToken) =>
+                .ConfigureOptions(o =>
                 {
-                    Console.WriteLine();
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("Antes de llamar al modelo...");
-                    Console.ResetColor();
+                    o.MaxOutputTokens = 2000;
+                    o.Temperature = 0.7f;
+                })
+                //.Use(async (mensajes, opciones, next, cancellationToken) =>
+                //{
+                //    Console.WriteLine();
+                //    Console.ForegroundColor = ConsoleColor.Green;
+                //    Console.WriteLine("Antes de llamar al modelo...");
+                //    Console.ResetColor();
 
-                    await next(mensajes, opciones, cancellationToken);
+                //    await next(mensajes, opciones, cancellationToken);
 
-                    Console.WriteLine();
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("Después de llamar al modelo...");
-                    Console.ResetColor();
+                //    Console.WriteLine();
+                //    Console.ForegroundColor = ConsoleColor.Green;
+                //    Console.WriteLine("Después de llamar al modelo...");
+                //    Console.ResetColor();
 
-                }).Build(sp);
+                //})
+                .Build(sp);
             });
         }
     }
