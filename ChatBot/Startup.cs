@@ -18,7 +18,22 @@ namespace ChatBot
                     _ => throw new ArgumentException($"Proveedor desconocido: {proveedor}"),
                 };
 
-                return cliente;
+                return cliente.AsBuilder()
+                .Use(async (mensajes, opciones, next, cancellationToken) =>
+                {
+                    Console.WriteLine();
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Antes de llamar al modelo...");
+                    Console.ResetColor();
+
+                    await next(mensajes, opciones, cancellationToken);
+
+                    Console.WriteLine();
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Después de llamar al modelo...");
+                    Console.ResetColor();
+
+                }).Build(sp);
             });
         }
     }
