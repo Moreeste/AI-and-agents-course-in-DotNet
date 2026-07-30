@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.AI;
+﻿using ChatBot.Servicios;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -9,6 +10,8 @@ namespace ChatBot
         public static void ConfigureServices(HostApplicationBuilder builder, string proveedor, string? modelo)
         {
             string openAiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+
+            builder.Services.AddSingleton<IServicioClima, ServicioClimaFalso>();
 
             builder.Services.AddSingleton<IChatClient>(sp =>
             {
@@ -23,22 +26,9 @@ namespace ChatBot
                 {
                     o.MaxOutputTokens = 2000;
                     o.Temperature = 0.7f;
+                    o.Tools = [.. Tools.Tools.ObtenerTools(sp)];
                 })
-                //.Use(async (mensajes, opciones, next, cancellationToken) =>
-                //{
-                //    Console.WriteLine();
-                //    Console.ForegroundColor = ConsoleColor.Green;
-                //    Console.WriteLine("Antes de llamar al modelo...");
-                //    Console.ResetColor();
-
-                //    await next(mensajes, opciones, cancellationToken);
-
-                //    Console.WriteLine();
-                //    Console.ForegroundColor = ConsoleColor.Green;
-                //    Console.WriteLine("Después de llamar al modelo...");
-                //    Console.ResetColor();
-
-                //})
+                .UseFunctionInvocation()
                 .Build(sp);
             });
         }
