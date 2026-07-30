@@ -2,6 +2,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace ChatBot
 {
@@ -11,7 +12,9 @@ namespace ChatBot
         {
             string openAiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 
-            builder.Services.AddSingleton<IServicioClima, ServicioClimaFalso>();
+            builder.Services.AddSingleton<IServicioClima, ServicioClimaOpenWeather>();
+            builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.None);
+            builder.Services.AddHttpClient();
 
             builder.Services.AddSingleton<IChatClient>(sp =>
             {
