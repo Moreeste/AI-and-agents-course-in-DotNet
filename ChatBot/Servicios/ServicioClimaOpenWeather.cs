@@ -9,7 +9,7 @@ namespace ChatBot.Servicios
         {
             var apikey = Environment.GetEnvironmentVariable("WEATHER_API_KEY");
             var ciudadUrl = Uri.EscapeDataString(ciudad);
-            var url = $"http://api.weatherapi.com/v1/current.json?key={apikey}&q={ciudadUrl}&aqi=no";
+            var url = $"http://api.weatherapi.com/v1/current.json?key={apikey}&q={ciudadUrl}&aqi=no&lang=es";
             var weatherResponse = await httpClient.GetFromJsonAsync<WeatherResponse>(url);
             return weatherResponse!.Current.Condition.Text;
         }

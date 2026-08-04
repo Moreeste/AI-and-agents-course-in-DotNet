@@ -17,6 +17,16 @@ namespace ChatBot.Tools
                     Name = "obtener_clima",
                     Description ="Obtiene el clima actual de la ciudad indicada"
                 });
+
+            var servicioEvaluaCondiciones = sp.GetRequiredService<ServicioEvaluaCondiciones>();
+
+            yield return AIFunctionFactory.Create(
+                servicioEvaluaCondiciones.EvaluarCondicion,
+                new AIFunctionFactoryOptions
+                {
+                    Name = "evaluar_condiciones_clima",
+                    Description = "Evalúa una condición climática (por ejemplo: 'lluvia', 'soleado') y determina si es momento para realizar actividades al aire libre "
+                });
         }
     }
 }

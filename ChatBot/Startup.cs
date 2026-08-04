@@ -13,6 +13,7 @@ namespace ChatBot
             string openAiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 
             builder.Services.AddSingleton<IServicioClima, ServicioClimaOpenWeather>();
+            builder.Services.AddTransient<ServicioEvaluaCondiciones>();
             builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.None);
             builder.Services.AddHttpClient();
 
