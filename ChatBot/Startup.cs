@@ -17,6 +17,9 @@ namespace ChatBot
             builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.None);
             builder.Services.AddHttpClient();
 
+            builder.Services.AddTransient<ServicioObtenerCorreoFalso>();
+            builder.Services.AddTransient<ServicioEnviarCorreoFalso>();
+
             builder.Services.AddSingleton<IChatClient>(sp =>
             {
                 var cliente = proveedor switch

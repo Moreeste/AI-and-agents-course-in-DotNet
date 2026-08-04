@@ -27,6 +27,13 @@ namespace ChatBot.Tools
                     Name = "evaluar_condiciones_clima",
                     Description = "Evalúa una condición climática (por ejemplo: 'lluvia', 'soleado') y determina si es momento para realizar actividades al aire libre "
                 });
+
+            var servicioObtenerCorreo = sp.GetRequiredService<ServicioObtenerCorreoFalso>();
+            yield return AIFunctionFactory.Create(servicioObtenerCorreo.ObtenerCorreo);
+
+            var servicioCorreos = sp.GetRequiredService<ServicioEnviarCorreoFalso>();
+            var functionEnviarCorreos = AIFunctionFactory.Create(servicioCorreos.EnviarCorreo);
+            yield return new ApprovalRequiredAIFunction(functionEnviarCorreos);
         }
     }
 }

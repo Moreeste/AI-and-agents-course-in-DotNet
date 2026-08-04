@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.AI;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 
 namespace ChatBot.ChatBots
@@ -34,7 +35,6 @@ namespace ChatBot.ChatBots
 
             while (true)
             {
-                var sb = new StringBuilder();
                 Console.ForegroundColor = ConsoleColor.Blue;
                 Console.Write("Tú: ");
                 var entrada = Console.ReadLine();
@@ -50,17 +50,74 @@ namespace ChatBot.ChatBots
                 Console.WriteLine();
                 Console.Write($"AI: ");
 
-                await foreach (var fragmento in cliente.GetStreamingResponseAsync(mensajes))
+                while (true)
                 {
-                    sb.Append(fragmento);
-                    Console.Write(fragmento);
+                    var updates = new List<ChatResponseUpdate>();
+
+                    await foreach (var responseUpdate in cliente.GetStreamingResponseAsync(mensajes))
+                    {
+                        updates.Add(responseUpdate);
+
+                        foreach (var contenido in responseUpdate.Contents)
+                        {
+                            if (contenido is TextContent contenidoTexto)
+                            {
+                                Console.Write(contenidoTexto);
+                            }
+                        }
+                    }
+
+                    var respuesta = updates.ToChatResponse();
+                    mensajes.AddMessages(respuesta);
+
+                    var solicitudAprobacion = respuesta.Messages.SelectMany(m => m.Contents).OfType<ToolApprovalRequestContent>().FirstOrDefault();
+
+                    if (solicitudAprobacion is not null)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine();
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine("La IA desea ejecutar una acción sensible.");
+
+                        if (solicitudAprobacion.ToolCall is FunctionCallContent functionCall)
+                        {
+                            Console.WriteLine($"Tool: {ConvertirNombreDeFuncion(functionCall.Name)}");
+
+                            if (functionCall.Arguments is not null)
+                            {
+                                foreach (var argumento in functionCall.Arguments)
+                                {
+                                    Console.WriteLine($"{argumento.Key}: {argumento.Value}");
+                                }
+                            }
+                        }
+
+                        Console.ResetColor();
+                        Console.Write("¿Deseas aprobar esta acción? (s/n): ");
+                        var aprobada = Console.ReadLine()?.Trim().ToLower() == "s";
+                        var respuestaAprobacion = solicitudAprobacion.CreateResponse(aprobada);
+
+                        mensajes.Add(new ChatMessage(ChatRole.User, [respuestaAprobacion]));
+
+                        Console.WriteLine();
+                        Console.Write("IA: ");
+                        continue;
+                    }
+
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    break;
                 }
-
-                mensajes.Add(new ChatMessage(role: ChatRole.Assistant, sb.ToString()));
-
-                Console.WriteLine();
-                Console.WriteLine();
             }
+        }
+
+        private static string ConvertirNombreDeFuncion(string nombre)
+        {
+            return nombre switch
+            {
+                "EnviarCorreo" => "Enviar correo",
+                _ => nombre
+            };
         }
     }
 }
