@@ -36,6 +36,10 @@ namespace ChatBot
                     o.Tools = [.. Tools.Tools.ObtenerTools(sp)];
                 })
                 .UseFunctionInvocation()
+                .Use(async (messages, options, next, cancellationToken) =>
+                {
+                    await next(messages, options, cancellationToken);
+                })
                 .Build(sp);
             });
         }
