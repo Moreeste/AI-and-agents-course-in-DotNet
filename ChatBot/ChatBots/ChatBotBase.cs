@@ -17,6 +17,8 @@ namespace ChatBot.ChatBots
             Eres un asistente que responde preguntas generales.
             Debes responder en español.
             Las respuestas deben ser en texto plano, no usar formatos como markdown.
+
+            Si un tool falla, lee el mensaje de la excepción para ver si puedes arreglarlo haciendo algún ajuste. Comunícale al usuario cualquier ajuste que vayas a hacer.
             """;
 
             var systemPromptCSharp = """
@@ -31,7 +33,7 @@ namespace ChatBot.ChatBots
             Las respuestas deben ser en texto plano, no usar formatos como markdown.
             """;
 
-            mensajes.Add(new ChatMessage(role: ChatRole.System, systemPromptCSharp));
+            mensajes.Add(new ChatMessage(role: ChatRole.System, systemPromptGeneral));
 
             while (true)
             {

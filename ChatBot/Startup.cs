@@ -35,7 +35,10 @@ namespace ChatBot
                     o.Temperature = 0.7f;
                     o.Tools = [.. Tools.Tools.ObtenerTools(sp)];
                 })
-                .UseFunctionInvocation()
+                .UseFunctionInvocation(null, c =>
+                {
+                    c.IncludeDetailedErrors = true;
+                })
                 .Use(async (messages, options, next, cancellationToken) =>
                 {
                     await next(messages, options, cancellationToken);
