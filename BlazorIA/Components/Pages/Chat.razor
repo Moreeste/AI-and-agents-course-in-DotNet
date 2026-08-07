@@ -1,7 +1,120 @@
 ﻿@page "/"
+@using BlazorIA.DTOs
+@using BlazorIA.Servicios.ChatBots
+@implements IDisposable
+@inject IChatBot ChatSession
+@inject IJSRuntime JS
 
-<h3>Chat</h3>
+<div class="chat-wrapper">
+    <h3 class="chat-titulo">Chat con IA</h3>
+
+    <div class="chat-mensajes" @ref="contenedorMensajes">
+        @foreach (var mensaje in ChatSession.Conversacion)
+        {
+            <div class="mensaje @ObtenerClaseCSS(mensaje.Rol)">
+                <div class="mensaje-header">@ObtenerEtiqueta(mensaje.Rol)</div>
+                <div class="mensaje-body">@mensaje.Texto</div>
+            </div>
+        }
+    </div>
+
+    <EditForm Model="modelo" OnValidSubmit="Enviar">
+        <div class="entrada-chat">
+            <input class="form-control"
+                   @bind="modelo.Texto"
+                   @bind:event="oninput"
+                   placeholder="Escribe tu mensaje..." />
+
+            <button type="submit"
+                    class="btn btn-primary"
+                    disabled="@DeshabilitarEnvio">
+                Enviar
+            </button>
+
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    @onclick="Cancelar"
+                    disabled="@(!ChatSession.EstaProcesando)">
+                Cancelar
+            </button>
+        </div>
+    </EditForm>
+</div>
+
 
 @code {
+    private readonly ChatInputModel modelo = new();
+    private ElementReference contenedorMensajes;
+    private bool necesitaScroll;
 
+    private bool DeshabilitarEnvio =>
+    ChatSession.EstaProcesando ||
+    string.IsNullOrWhiteSpace(modelo.Texto);
+
+    protected override void OnInitialized()
+    {
+        ChatSession.OnChange += ManejarCambioChat;
+    }
+
+    private void ManejarCambioChat()
+    {
+        necesitaScroll = true;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Enviar()
+    {
+        var texto = modelo.Texto?.Trim();
+
+        if (string.IsNullOrWhiteSpace(texto))
+        {
+            return;
+        }
+
+        modelo.Texto = string.Empty;
+        necesitaScroll = true;
+
+        await ChatSession.EnviarMensajeAsync(texto);
+    }
+
+    private Task Cancelar()
+    {
+        ChatSession.CancelarRespuestaActual();
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (necesitaScroll)
+        {
+            necesitaScroll = false;
+            await JS.InvokeVoidAsync("chatScroll.scrollToBottom", contenedorMensajes);
+        }
+    }
+
+    private static string ObtenerEtiqueta(RolMensaje rol) => rol switch
+    {
+        RolMensaje.Usuario => "Tú",
+        RolMensaje.IA => "IA",
+        RolMensaje.Sistema => "Sistema",
+        _ => rol.ToString()
+    };
+
+    private static string ObtenerClaseCSS(RolMensaje rol) => rol switch
+    {
+        RolMensaje.Usuario => "user",
+        RolMensaje.IA => "assistant",
+        RolMensaje.Sistema => "system",
+        _ => rol.ToString()
+    };
+
+    public void Dispose()
+    {
+        ChatSession.OnChange -= ManejarCambioChat;
+    }
+    
+    private class ChatInputModel
+    {
+        public string Texto { get; set; } = string.Empty;
+    }
 }
