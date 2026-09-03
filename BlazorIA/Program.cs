@@ -1,5 +1,7 @@
 using BlazorIA.Components;
+using BlazorIA.Servicios;
 using BlazorIA.Servicios.ChatBots;
+using BlazorIA.Utilidades;
 using Microsoft.Extensions.AI;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +11,12 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddScoped<IChatBot, ChatBotReal>();
+
+builder.Services.AddTransient<IServicioClima, ServicioClimaOpenWeather>();
+builder.Services.AddTransient<ServicioEvaluaCondiciones>();
+builder.Services.AddTransient<ServicioEnviarCorreoFalso>();
+builder.Services.AddTransient<ServicioObtenerCorreoFalso>();
+builder.Services.AddHttpClient();
 
 builder.Services.AddSingleton<IChatClient>(sp =>
 {
@@ -28,6 +36,7 @@ builder.Services.AddSingleton<IChatClient>(sp =>
     {
         o.MaxOutputTokens = 2000;
         o.Temperature = 0.7f;
+        o.Tools = [.. Tools.ObtenerTools(sp)];
     })
     .UseFunctionInvocation(null, c =>
     {
