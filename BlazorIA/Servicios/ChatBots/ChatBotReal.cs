@@ -6,6 +6,7 @@ namespace BlazorIA.Servicios.ChatBots
     public class ChatBotReal : IChatBot
     {
         private readonly IChatClient _cliente;
+        private readonly ChatOptions chatOptions;
         private readonly List<ChatMessage> mensajes = [];
 
         public List<MensajeChatUI> Conversacion { get; } = [];
@@ -13,10 +14,10 @@ namespace BlazorIA.Servicios.ChatBots
         public event Action? OnChange;
         public SolicitudAprobacionUI? AprobacionPendiente { get; private set; }
 
-        public ChatBotReal(IChatClient cliente)
+        public ChatBotReal(IChatClient cliente, ChatOptions chatOptions)
         {
             _cliente = cliente;
-
+            this.chatOptions = chatOptions;
             var systemPromptGeneral = """
             Eres un asistente que responde preguntas generales.
             Debes responder en español.
@@ -71,7 +72,7 @@ namespace BlazorIA.Servicios.ChatBots
         {
             var updates = new List<ChatResponseUpdate>();
 
-            await foreach (var update in _cliente.GetStreamingResponseAsync(mensajes, cancellationToken: cancellationToken))
+            await foreach (var update in _cliente.GetStreamingResponseAsync(mensajes, chatOptions, cancellationToken: cancellationToken))
             {
                 updates.Add(update);
 

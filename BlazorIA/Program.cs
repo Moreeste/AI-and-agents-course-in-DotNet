@@ -18,11 +18,12 @@ builder.Services.AddTransient<ServicioEnviarCorreoFalso>();
 builder.Services.AddTransient<ServicioObtenerCorreoFalso>();
 builder.Services.AddHttpClient();
 
+var proveedor = "openai";
+var modelo = "gpt-5.4-nano";
+
 builder.Services.AddSingleton<IChatClient>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
-    var proveedor = "openai";
-    var modelo = "gpt-5.4-nano";
     var openAiKey = configuration.GetValue<string>("OpenAI_Key");
 
     var cliente = proveedor switch
@@ -32,17 +33,19 @@ builder.Services.AddSingleton<IChatClient>(sp =>
     };
 
     return cliente.AsBuilder()
-    .ConfigureOptions(o =>
-    {
-        o.MaxOutputTokens = 2000;
-        o.Temperature = 0.7f;
-        o.Tools = [.. Tools.ObtenerTools(sp)];
-    })
     .UseFunctionInvocation(null, c =>
     {
         c.IncludeDetailedErrors = true;
     })
     .Build(sp);
+});
+
+builder.Services.AddTransient<ChatOptions>(sp => new ChatOptions
+{
+    Tools = [.. Tools.ObtenerTools(sp)],
+    ModelId = modelo,
+    Temperature = 0.7f,
+    MaxOutputTokens = 2000
 });
 
 var app = builder.Build();
