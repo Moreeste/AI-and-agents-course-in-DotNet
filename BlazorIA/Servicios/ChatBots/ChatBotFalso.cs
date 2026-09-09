@@ -8,6 +8,8 @@ namespace BlazorIA.Servicios.ChatBots
 
         public bool EstaProcesando => false;
 
+        public SolicitudAprobacionUI? AprobacionPendiente => throw new NotImplementedException();
+
         public event Action? OnChange;
 
         public void CancelarRespuestaActual()

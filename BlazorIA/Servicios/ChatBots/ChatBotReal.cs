@@ -11,6 +11,7 @@ namespace BlazorIA.Servicios.ChatBots
         public List<MensajeChatUI> Conversacion { get; } = [];
         public bool EstaProcesando { get; private set; }
         public event Action? OnChange;
+        public SolicitudAprobacionUI? AprobacionPendiente { get; private set; }
 
         public ChatBotReal(IChatClient cliente)
         {
@@ -40,7 +41,7 @@ namespace BlazorIA.Servicios.ChatBots
                 return;
             }
 
-            if (EstaProcesando)
+            if (EstaProcesando || AprobacionPendiente is not null)
             {
                 return;
             }
@@ -82,17 +83,77 @@ namespace BlazorIA.Servicios.ChatBots
                         NotificarCambio();
                     }
                 }
+            }
 
-                var respuesta = updates.ToChatResponse();
-                mensajes.AddMessages(respuesta);
+            var respuesta = updates.ToChatResponse();
+            mensajes.AddMessages(respuesta);
+
+            var solicitudAprobacion = respuesta.Messages
+                .SelectMany(m => m.Contents)
+                .OfType<ToolApprovalRequestContent>()
+                .FirstOrDefault();
+
+            if (solicitudAprobacion is not null)
+            {
+                if (solicitudAprobacion.ToolCall is FunctionCallContent functionCall)
+                {
+                    AprobacionPendiente = new SolicitudAprobacionUI
+                    {
+                        SolicitudAprobacion = solicitudAprobacion,
+                        NombreTool = ConvertirNombreDeFuncion(functionCall.Name),
+                        Argumentos = functionCall.Arguments?.ToDictionary(x => x.Key, x => x.Value) ?? []
+                    };
+                }
+
+                //Removemos el mensaje vacío de la IA.
+                if (string.IsNullOrEmpty(Conversacion[^1].Texto))
+                {
+                    Conversacion.RemoveAt(Conversacion.Count - 1);
+                }
+
+                NotificarCambio();
+                return;
             }
         }
 
         private void NotificarCambio() => OnChange?.Invoke();
 
-        public Task ResolverAprobacionAsync(bool aprobada, CancellationToken cancellationToken = default)
+        public async Task ResolverAprobacionAsync(bool aprobada, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            if (AprobacionPendiente is null || EstaProcesando)
+            {
+                return;
+            }
+
+            EstaProcesando = true;
+            var respuestaAprobacion = AprobacionPendiente.SolicitudAprobacion.CreateResponse(aprobada);
+            mensajes.Add(new ChatMessage(ChatRole.User, [respuestaAprobacion]));
+            AprobacionPendiente = null;
+
+            Conversacion.Add(new MensajeChatUI
+            {
+                Rol = RolMensaje.Sistema,
+                Texto = aprobada ? "Acción aprobada por el usuario." : "Acción rechazada por el usuario."
+            });
+
+            Conversacion.Add(new MensajeChatUI
+            {
+                Rol = RolMensaje.IA,
+                Texto = string.Empty
+            });
+
+            NotificarCambio();
+            await ProcesarRespuesta(cancellationToken);
+            EstaProcesando = false;
+        }
+
+        private static string ConvertirNombreDeFuncion(string nombre)
+        {
+            return nombre switch
+            {
+                "EnviarCorreo" => "Enviar correo",
+                _ => nombre
+            };
         }
     }
 }
