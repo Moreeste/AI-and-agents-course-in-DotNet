@@ -9,6 +9,7 @@ namespace BlazorIA.Servicios.ChatBots
         private readonly ChatOptions chatOptions;
         private readonly List<ChatMessage> mensajes = [];
         private readonly Queue<ToolApprovalRequestContent> aprobacionesPendientes = new();
+        private CancellationTokenSource? _ctsActual;
 
         public List<MensajeChatUI> Conversacion { get; } = [];
         public bool EstaProcesando { get; private set; }
@@ -33,7 +34,10 @@ namespace BlazorIA.Servicios.ChatBots
 
         public void CancelarRespuestaActual()
         {
-
+            if (EstaProcesando)
+            {
+                _ctsActual?.Cancel();
+            }
         }
 
         public async Task EnviarMensajeAsync(string textoUsuario, CancellationToken cancellationToken = default)
@@ -48,25 +52,59 @@ namespace BlazorIA.Servicios.ChatBots
                 return;
             }
 
-            EstaProcesando = true;
-
-            Conversacion.Add(new MensajeChatUI
+            try
             {
-                Rol = RolMensaje.Usuario,
-                Texto = textoUsuario
-            });
+                EstaProcesando = true;
+                _ctsActual = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-            mensajes.Add(new ChatMessage(ChatRole.User, textoUsuario));
+                Conversacion.Add(new MensajeChatUI
+                {
+                    Rol = RolMensaje.Usuario,
+                    Texto = textoUsuario
+                });
 
-            Conversacion.Add(new MensajeChatUI
+                mensajes.Add(new ChatMessage(ChatRole.User, textoUsuario));
+
+                Conversacion.Add(new MensajeChatUI
+                {
+                    Rol = RolMensaje.IA,
+                    Texto = string.Empty
+                });
+
+                NotificarCambio();
+                await ProcesarRespuesta(_ctsActual.Token);
+            }
+            catch (OperationCanceledException)
             {
-                Rol = RolMensaje.IA,
-                Texto = string.Empty
-            });
+                ManejarOperacionCancelada();
+            }
+            finally
+            {
+                ManejarFinally();
+            }
+        }
 
-            NotificarCambio();
-            await ProcesarRespuesta(cancellationToken);
+        private void ManejarOperacionCancelada()
+        {
+            if (Conversacion.Count > 0 && Conversacion[^1].Rol == RolMensaje.IA)
+            {
+                if (string.IsNullOrWhiteSpace(Conversacion[^1].Texto))
+                {
+                    Conversacion[^1].Texto = "[Respuesta cancelada]";
+                }
+                else
+                {
+                    Conversacion[^1].Texto += " [cancelado]";
+                }
+            }
+        }
+
+        private void ManejarFinally()
+        {
+            _ctsActual?.Dispose();
+            _ctsActual = null;
             EstaProcesando = false;
+            NotificarCambio();
         }
 
         private async Task ProcesarRespuesta(CancellationToken cancellationToken)
@@ -144,36 +182,47 @@ namespace BlazorIA.Servicios.ChatBots
                 return;
             }
 
-            EstaProcesando = true;
-            var respuestaAprobacion = AprobacionPendiente.SolicitudAprobacion.CreateResponse(aprobada);
-            mensajes.Add(new ChatMessage(ChatRole.User, [respuestaAprobacion]));
-            AprobacionPendiente = null;
-
-            Conversacion.Add(new MensajeChatUI
+            try
             {
-                Rol = RolMensaje.Sistema,
-                Texto = aprobada ? "Acción aprobada por el usuario." : "Acción rechazada por el usuario."
-            });
+                EstaProcesando = true;
+                _ctsActual = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var respuestaAprobacion = AprobacionPendiente.SolicitudAprobacion.CreateResponse(aprobada);
+                mensajes.Add(new ChatMessage(ChatRole.User, [respuestaAprobacion]));
+                AprobacionPendiente = null;
 
-            AprobacionPendiente = null;
-            MostrarSiguienteAprobacionPendiente();
+                Conversacion.Add(new MensajeChatUI
+                {
+                    Rol = RolMensaje.Sistema,
+                    Texto = aprobada ? "Acción aprobada por el usuario." : "Acción rechazada por el usuario."
+                });
 
-            if (AprobacionPendiente is not null)
-            {
-                EstaProcesando = false;
+                AprobacionPendiente = null;
+                MostrarSiguienteAprobacionPendiente();
+
+                if (AprobacionPendiente is not null)
+                {
+                    EstaProcesando = false;
+                    NotificarCambio();
+                    return;
+                }
+
+                Conversacion.Add(new MensajeChatUI
+                {
+                    Rol = RolMensaje.IA,
+                    Texto = string.Empty
+                });
+
                 NotificarCambio();
-                return;
+                await ProcesarRespuesta(_ctsActual.Token);
             }
-
-            Conversacion.Add(new MensajeChatUI
+            catch (OperationCanceledException)
             {
-                Rol = RolMensaje.IA,
-                Texto = string.Empty
-            });
-
-            NotificarCambio();
-            await ProcesarRespuesta(cancellationToken);
-            EstaProcesando = false;
+                ManejarOperacionCancelada();
+            }
+            finally
+            {
+                ManejarFinally();
+            }
         }
 
         private static string ConvertirNombreDeFuncion(string nombre)
