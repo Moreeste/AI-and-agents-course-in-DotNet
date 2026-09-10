@@ -31,6 +31,11 @@ namespace BlazorIA.Servicios.ChatBots
             return Task.CompletedTask;
         }
 
+        public void SetearModelo(string modelo)
+        {
+            throw new NotImplementedException();
+        }
+
         private void NotificarCambio() => OnChange?.Invoke();
     }
 }

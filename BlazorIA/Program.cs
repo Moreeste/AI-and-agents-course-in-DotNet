@@ -25,32 +25,11 @@ builder.Services.AddTransient<ServicioEnviarCorreoFalso>();
 builder.Services.AddTransient<ServicioObtenerCorreoFalso>();
 builder.Services.AddHttpClient();
 
-var proveedor = "openai";
-var modelo = "gpt-5.4-nano";
-
-builder.Services.AddSingleton<IChatClient>(sp =>
-{
-    var configuration = sp.GetRequiredService<IConfiguration>();
-    var openAiKey = configuration.GetValue<string>("OpenAI_Key");
-
-    var cliente = proveedor switch
-    {
-        "openai" => new OpenAI.Chat.ChatClient(modelo ?? "gpt-5.4-nano", openAiKey).AsIChatClient(),
-        _ => throw new ArgumentException($"Proveedor desconocido: {proveedor}"),
-    };
-
-    return cliente.AsBuilder()
-    .UseFunctionInvocation(null, c =>
-    {
-        c.IncludeDetailedErrors = true;
-    })
-    .Build(sp);
-});
+builder.Services.AddTransient<IChatClientFactory, ChatClientFactory>();
 
 builder.Services.AddTransient<ChatOptions>(sp => new ChatOptions
 {
     Tools = [.. Tools.ObtenerTools(sp)],
-    ModelId = modelo,
     Temperature = 0.7f,
     MaxOutputTokens = 2000
 });

@@ -1,11 +1,13 @@
 ﻿using BlazorIA.DTOs;
+using BlazorIA.Utilidades;
 using Microsoft.Extensions.AI;
 
 namespace BlazorIA.Servicios.ChatBots
 {
     public class ChatBotReal : IChatBot
     {
-        private readonly IChatClient _cliente;
+        private string modelo;
+        private readonly IChatClientFactory chatClientFactory;
         private readonly ChatOptions chatOptions;
         private readonly List<ChatMessage> mensajes = [];
         private readonly Queue<ToolApprovalRequestContent> aprobacionesPendientes = new();
@@ -16,9 +18,10 @@ namespace BlazorIA.Servicios.ChatBots
         public event Action? OnChange;
         public SolicitudAprobacionUI? AprobacionPendiente { get; private set; }
 
-        public ChatBotReal(IChatClient cliente, ChatOptions chatOptions)
+        public ChatBotReal(IChatClientFactory chatClientFactory, ChatOptions chatOptions)
         {
-            _cliente = cliente;
+            modelo = ModelosIA.ObtenerModeloPorDefecto;
+            this.chatClientFactory = chatClientFactory;
             this.chatOptions = chatOptions;
             var systemPromptGeneral = """
             Eres un asistente que responde preguntas generales.
@@ -111,7 +114,9 @@ namespace BlazorIA.Servicios.ChatBots
         {
             var updates = new List<ChatResponseUpdate>();
 
-            await foreach (var update in _cliente.GetStreamingResponseAsync(mensajes, chatOptions, cancellationToken: cancellationToken))
+            var cliente = chatClientFactory.Crear(modelo);
+
+            await foreach (var update in cliente.GetStreamingResponseAsync(mensajes, chatOptions, cancellationToken: cancellationToken))
             {
                 updates.Add(update);
 
@@ -232,6 +237,11 @@ namespace BlazorIA.Servicios.ChatBots
                 "EnviarCorreo" => "Enviar correo",
                 _ => nombre
             };
+        }
+
+        public void SetearModelo(string modelo)
+        {
+            this.modelo = modelo;
         }
     }
 }
