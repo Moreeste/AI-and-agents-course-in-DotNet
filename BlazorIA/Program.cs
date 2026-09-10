@@ -1,7 +1,9 @@
 using BlazorIA.Components;
+using BlazorIA.Datos;
 using BlazorIA.Servicios;
 using BlazorIA.Servicios.ChatBots;
 using BlazorIA.Utilidades;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +11,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddDbContextFactory<ApplicationDbContext>(opciones =>
+    opciones.UseSqlite("Data Source=midb.db"));
+
+builder.Services.AddScoped<IServicioPersonas, ServicioPersonas>();
 
 builder.Services.AddScoped<IChatBot, ChatBotReal>();
 

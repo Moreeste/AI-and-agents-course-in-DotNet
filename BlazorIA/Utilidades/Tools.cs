@@ -33,6 +33,9 @@ namespace BlazorIA.Utilidades
             var servicioCorreos = sp.GetRequiredService<ServicioEnviarCorreoFalso>();
             var functionEnviarCorreos = AIFunctionFactory.Create(servicioCorreos.EnviarCorreo);
             yield return new ApprovalRequiredAIFunction(functionEnviarCorreos);
+
+            var servicioPersonas = sp.GetRequiredService<IServicioPersonas>();
+            yield return AIFunctionFactory.Create(servicioPersonas.ObtenerTodas);
         }
     }
 }
