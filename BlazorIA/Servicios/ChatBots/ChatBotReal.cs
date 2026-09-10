@@ -8,6 +8,7 @@ namespace BlazorIA.Servicios.ChatBots
         private readonly IChatClient _cliente;
         private readonly ChatOptions chatOptions;
         private readonly List<ChatMessage> mensajes = [];
+        private readonly Queue<ToolApprovalRequestContent> aprobacionesPendientes = new();
 
         public List<MensajeChatUI> Conversacion { get; } = [];
         public bool EstaProcesando { get; private set; }
@@ -89,31 +90,48 @@ namespace BlazorIA.Servicios.ChatBots
             var respuesta = updates.ToChatResponse();
             mensajes.AddMessages(respuesta);
 
-            var solicitudAprobacion = respuesta.Messages
+            var solicitudesAprobacion = respuesta.Messages
                 .SelectMany(m => m.Contents)
                 .OfType<ToolApprovalRequestContent>()
-                .FirstOrDefault();
+                .ToList();
 
-            if (solicitudAprobacion is not null)
+            if (solicitudesAprobacion.Count > 0)
             {
-                if (solicitudAprobacion.ToolCall is FunctionCallContent functionCall)
+                foreach (var solicitud in solicitudesAprobacion)
                 {
-                    AprobacionPendiente = new SolicitudAprobacionUI
-                    {
-                        SolicitudAprobacion = solicitudAprobacion,
-                        NombreTool = ConvertirNombreDeFuncion(functionCall.Name),
-                        Argumentos = functionCall.Arguments?.ToDictionary(x => x.Key, x => x.Value) ?? []
-                    };
+                    aprobacionesPendientes.Enqueue(solicitud);
                 }
-
+                
                 //Removemos el mensaje vacío de la IA.
                 if (string.IsNullOrEmpty(Conversacion[^1].Texto))
                 {
                     Conversacion.RemoveAt(Conversacion.Count - 1);
                 }
 
+                MostrarSiguienteAprobacionPendiente();
                 NotificarCambio();
                 return;
+            }
+        }
+
+        private void MostrarSiguienteAprobacionPendiente()
+        {
+            if (aprobacionesPendientes.Count == 0)
+            {
+                AprobacionPendiente = null;
+                return;
+            }
+
+            var solicitudAprobacion = aprobacionesPendientes.Dequeue();
+
+            if (solicitudAprobacion.ToolCall is FunctionCallContent functionCall)
+            {
+                AprobacionPendiente = new SolicitudAprobacionUI
+                {
+                    SolicitudAprobacion = solicitudAprobacion,
+                    NombreTool = ConvertirNombreDeFuncion(functionCall.Name),
+                    Argumentos = functionCall.Arguments?.ToDictionary(x => x.Key, x => x.Value) ?? []
+                };
             }
         }
 
@@ -136,6 +154,16 @@ namespace BlazorIA.Servicios.ChatBots
                 Rol = RolMensaje.Sistema,
                 Texto = aprobada ? "Acción aprobada por el usuario." : "Acción rechazada por el usuario."
             });
+
+            AprobacionPendiente = null;
+            MostrarSiguienteAprobacionPendiente();
+
+            if (AprobacionPendiente is not null)
+            {
+                EstaProcesando = false;
+                NotificarCambio();
+                return;
+            }
 
             Conversacion.Add(new MensajeChatUI
             {
