@@ -22,7 +22,7 @@ namespace BlazorIA.RAG.Servicios
             collection = vectorStore.GetCollection<Guid, FragmentoDocumentoVector>("documentos");
         }
 
-        public async Task<List<string>> BuscarContextoRelevante(string pregunta, int top = 3, CancellationToken cancellationToken = default)
+        public async Task<List<string>> BuscarContextoRelevante(string pregunta, int top = 3, float scoreMinimo = 0.6f, CancellationToken cancellationToken = default)
         {
             await Inicializar(cancellationToken);
 
@@ -32,6 +32,11 @@ namespace BlazorIA.RAG.Servicios
 
             await foreach (var resultado in collection.SearchAsync(preguntaEmbedding, top: top, cancellationToken: cancellationToken))
             {
+                if (resultado.Score < scoreMinimo)
+                {
+                    continue;
+                }
+
                 resultados.Add($"""
                     Documento: {resultado.Record.TituloDocumento}
                     Contenido: {resultado.Record.Texto}

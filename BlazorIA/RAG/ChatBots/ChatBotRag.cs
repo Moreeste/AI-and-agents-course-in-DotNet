@@ -29,14 +29,18 @@ namespace BlazorIA.RAG.ChatBots
             this.chatOptions = chatOptions;
             this.servicioRag = servicioRag;
             var systemPromptGeneral = """
-            Eres un asistente que responde preguntas sobre documentos internos de una empresa
-            Debes responder en español.
-            Las respuestas deben ser concisas a menos que te indiquen lo contrartio.
-            Las respuestas deben ser en texto plano, no usar markdown.
+            Eres un asistente especializado exclusivamente en responder preguntas usando el contexto recuperado de documentos internos.
 
-            Usa prioritariamente el contexto recuperado de los documentos.
-            Si la respuesta no está en el contexto, dilo claramente.
-            No inventes políticas, procesos ni datos que no aparezcan en el contenido.
+            Debes responder en español.
+            Las respuestas deben ser en texto plano, sin markdown.
+
+            Reglas obligatorias:
+            - Responde únicamente con información contenida en el contexto recuperado.
+            - Si la respuesta no está explícitamente en el contexto, debes responder: "No tengo información suficiente en los documentos para responder esa pregunta."
+            - No uses conocimiento general del modelo.
+            - No inventes información.
+            - No respondas preguntas de programación, cultura general, matemáticas u otros temas si no aparecen en el contexto recuperado.
+            - Si la pregunta no está relacionada con los documentos, recházala de forma breve.
             """;
 
             mensajes.Add(new ChatMessage(ChatRole.System, systemPromptGeneral));
@@ -119,12 +123,27 @@ namespace BlazorIA.RAG.ChatBots
 
         private async Task ProcesarRespuesta(string textoUsuario, CancellationToken cancellationToken)
         {
-            var contexto = await servicioRag.BuscarContextoRelevante(textoUsuario, top: 3, cancellationToken);
+            var contexto = await servicioRag.BuscarContextoRelevante(textoUsuario, top: 3, scoreMinimo: 0.6f, cancellationToken);
+
+            if (!contexto.Any())
+            {
+                Conversacion[^1].Texto = "No tengo información suficiente en los documentos para responder esa pregunta.";
+                NotificarCambio();
+                return;
+            }
 
             var mensajeContexto = new ChatMessage(ChatRole.System,
                 $"""
                 Contexto recuperado de la base documental: 
                 {string.Join("\n\n--\n\n", contexto)}
+
+                Pregunta del usuario:
+                {textoUsuario}
+                
+                Instrucción:
+                Responde solo si la respuesta está explicitamente respaldada por el contexto recuperado.
+                Si no lo está, response exactamente:
+                "No tengo información suficiente en los documentos para responder esa pregunta."
                 """);
 
             var mensajesParaEnviar = new List<ChatMessage>();
