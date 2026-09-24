@@ -13,7 +13,22 @@
         {
             <div class="mensaje @ObtenerClaseCSS(mensaje.Rol)">
                 <div class="mensaje-header">@ObtenerEtiqueta(mensaje.Rol)</div>
-                <div class="mensaje-body">@mensaje.Texto</div>
+                <div class="mensaje-body">
+                    @if (string.IsNullOrEmpty(mensaje.Texto))
+                    {
+                        <div class="typing-indicator">
+                            <div class="typing-dots" aria-label="La IA está escribiendo" role="status">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        @mensaje.Texto
+                    }
+                </div>
             </div>
         }
 
