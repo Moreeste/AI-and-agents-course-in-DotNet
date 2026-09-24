@@ -1,4 +1,4 @@
-﻿@page "/"
+﻿@page "/chat-rag"
 @using BlazorIA.DTOs
 @using BlazorIA.Servicios.ChatBots
 @using BlazorIA.Utilidades
@@ -6,7 +6,7 @@
 @inject IJSRuntime JS
 
 <div class="chat-wrapper">
-    <h3 class="chat-titulo">Chat con IA</h3>
+    <h3 class="chat-titulo">Chat sobre documentos internos</h3>
 
     <div class="chat-mensajes" @ref="contenedorMensajes">
         @foreach (var mensaje in ChatSession.Conversacion)
@@ -85,7 +85,7 @@
 
 
 @code {
-    [Inject(Key = "chat")]
+    [Inject(Key = "chat-rag")]
     public IChatBot ChatSession { get; set; } = null!;
 
     private readonly ChatInputModel modelo = new();
