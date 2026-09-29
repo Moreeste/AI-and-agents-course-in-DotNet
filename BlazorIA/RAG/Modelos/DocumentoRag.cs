@@ -17,6 +17,6 @@ namespace BlazorIA.RAG.Modelos
         public int NumeroFragmento { get; set; }
 
         [VectorSearchField(VectorSearchDimensions = 1536, VectorSearchProfileName = "perfil-vector")]
-        public ReadOnlyMemory<float> Embedding { get; set; }
+        public float[] Embedding { get; set; } = null!;
     }
 }
