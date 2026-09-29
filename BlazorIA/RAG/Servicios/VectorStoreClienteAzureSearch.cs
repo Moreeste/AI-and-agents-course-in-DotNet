@@ -62,6 +62,11 @@ namespace BlazorIA.RAG.Servicios
                     });
                 }
             }
+
+            if (documentos.Count > 0)
+            {
+                await searchClient.UploadDocumentsAsync(documentos);
+            }
         }
 
         private static List<string> DividirFragmentos(string texto, int maxCaracteres)
