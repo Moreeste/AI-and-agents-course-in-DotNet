@@ -29,7 +29,7 @@ namespace BlazorIA.RAG.Servicios
 
         public async Task SubirArchivos(List<IBrowserFile> archivos, CancellationToken cancellationToken = default)
         {
-            if (archivos == null || archivos.Count == 0)
+            if (archivos is null || archivos.Count == 0)
             {
                 return;
             }
@@ -40,17 +40,19 @@ namespace BlazorIA.RAG.Servicios
 
             foreach (var archivo in archivos)
             {
-                using var reader = new StreamReader(archivo.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
+                using var reader = new StreamReader(
+                     archivo.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
 
                 var contenido = await reader.ReadToEndAsync(cancellationToken);
 
-                var fragmentos = DividirFragmentos(contenido, 1000);
+                var fragmentos = DividirEnFragmentos(contenido, 1200);
 
                 for (int i = 0; i < fragmentos.Count; i++)
                 {
-                    var embedding = await embeddingGenerator.GenerateVectorAsync(fragmentos[i], cancellationToken: cancellationToken);
+                    var embedding = await embeddingGenerator.GenerateVectorAsync(fragmentos[i],
+                                                    cancellationToken: cancellationToken);
 
-                    var nombreValido = Path.GetFileNameWithoutExtension(archivo.Name).Replace(" ", "_");
+                    var nombreValido = Path.GetFileNameWithoutExtension(archivo.Name).Replace(" ", "-");
 
                     documentos.Add(new DocumentoRag
                     {
@@ -60,7 +62,9 @@ namespace BlazorIA.RAG.Servicios
                         NumeroFragmento = i,
                         Embedding = embedding.ToArray()
                     });
+
                 }
+
             }
 
             if (documentos.Count > 0)
@@ -69,16 +73,19 @@ namespace BlazorIA.RAG.Servicios
             }
         }
 
-        private static List<string> DividirFragmentos(string texto, int maxCaracteres)
+        private static List<string> DividirEnFragmentos(string texto, int maxCaracteres)
         {
-            var parrafos = texto.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var parrafos = texto
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             var resultado = new List<string>();
             var actual = string.Empty;
 
             foreach (var parrafo in parrafos)
             {
-                var candidato = string.IsNullOrWhiteSpace(actual) ? parrafo : $"{actual}\n{parrafo}";
+                var candidato = string.IsNullOrWhiteSpace(actual)
+                                ? parrafo
+                                : actual + "\n" + parrafo;
 
                 if (candidato.Length > maxCaracteres)
                 {
