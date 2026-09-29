@@ -28,11 +28,14 @@ builder.Services.AddSingleton<ServicioDocumentosEnMemoria>();
 builder.Services.AddSingleton<IServicioRag, ServicioRagMemoria>();
 builder.Services.AddSingleton<InMemoryVectorStore>();
 
+builder.Services.AddSingleton<ServicioIndiceRagAzureSearch>();
+builder.Services.AddScoped<IVectorStore, VectorStoreClienteAzureSearch>();
+
 builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
     var apikey = configuration["OpenAI_Key"];
-    var modeloEmbedding = "text-embedding-3-small";
+    var modeloEmbedding = configuration["Embedding_Model"];
 
     var cliente = new EmbeddingClient(modeloEmbedding, apikey);
     return cliente.AsIEmbeddingGenerator();
