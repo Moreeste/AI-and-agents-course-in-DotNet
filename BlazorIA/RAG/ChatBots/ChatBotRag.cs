@@ -1,9 +1,12 @@
 ﻿using BlazorIA.DTOs;
+using BlazorIA.RAG.Modelos;
 using BlazorIA.RAG.Servicios;
 using BlazorIA.Servicios;
 using BlazorIA.Servicios.ChatBots;
 using BlazorIA.Utilidades;
 using Microsoft.Extensions.AI;
+using System.Text;
+using System.Text.Json;
 
 namespace BlazorIA.RAG.ChatBots
 {
@@ -132,18 +135,28 @@ namespace BlazorIA.RAG.ChatBots
                 return;
             }
 
+            var delimitadorFuentes = "|";
+
             var mensajeContexto = new ChatMessage(ChatRole.System,
-                $"""
+                $$"""
                 Contexto recuperado de la base documental: 
-                {string.Join("\n\n--\n\n", contexto)}
+                {{string.Join("\n\n--\n\n", contexto)}}
 
                 Pregunta del usuario:
-                {textoUsuario}
+                {{textoUsuario}}
                 
                 Instrucción:
-                Responde solo si la respuesta está explicitamente respaldada por el contexto recuperado.
-                Si no lo está, response exactamente:
-                "No tengo información suficiente en los documentos para responder esa pregunta."
+                - Responde solo si la respuesta está explícitamente respaldada por el contexto recuperado.
+                - Si no lo está, responde exactamente:
+                    "No tengo información suficiente en los documentos para responder esa pregunta."
+                - Primero escribe solamente la respuesta para el usuario, en texto plano.
+                - Luego escribe en una nueva línea exactamente:
+                    {{delimitadorFuentes}}
+                - Después del delimitador, escribe un JSON válido con este formato:
+                    {"fuentesUsadas":["Documento-1", "Documento-2"]}
+                - Por ejemplo: El nombre del documento se encuentra así "manual-de-politicas-internas.md" donde manual-de-politicas-internas.md sería el título que debes colocar en fuentesUsadas.
+                - En "fuentesUsadas" incluye solamente los títulos de documento de las fuentes realmente utilizadas.
+                - No incluyas fuentes irrelevantes.
                 """);
 
             var mensajesParaEnviar = new List<ChatMessage>();
@@ -153,6 +166,9 @@ namespace BlazorIA.RAG.ChatBots
             var updates = new List<ChatResponseUpdate>();
 
             var cliente = chatClientFactory.Crear(modelo);
+            var sbFuentes = new StringBuilder();
+            var delimitadorEncontrado = false;
+
 
             await foreach (var update in cliente.GetStreamingResponseAsync(mensajesParaEnviar, chatOptions, cancellationToken: cancellationToken))
             {
@@ -162,15 +178,32 @@ namespace BlazorIA.RAG.ChatBots
                 {
                     if (content is TextContent textContent)
                     {
-                        Conversacion[^1].Texto += textContent.Text;
-                        NotificarCambio();
+                        if (textContent.Text.Contains(delimitadorFuentes) || delimitadorEncontrado)
+                        {
+                            sbFuentes.Append(textContent.Text);
+                            delimitadorEncontrado = true;
+                            continue;
+                        }
+                        else
+                        {
+                            Conversacion[^1].Texto += textContent.Text;
+                            NotificarCambio();
+                        }
                     }
                 }
             }
 
-            Conversacion[^1].ArchivosCitados = contexto.Select(x => new ArchivoCitado
+            var contenidoFuentes = sbFuentes.ToString().Trim().Replace(delimitadorFuentes, "")
+                .Replace("\r\n", "")
+                .Replace("\n", "")
+                .Replace("\r", "");
+
+            var metadata = JsonSerializer.Deserialize<MetadataFuentes>(contenidoFuentes)!;
+
+            Conversacion[^1].ArchivosCitados = metadata.FuentesUsadas.Select(nombreArchivo =>
+            new ArchivoCitado
             {
-                NombreArchivo = x.TituloDocumento
+                NombreArchivo = nombreArchivo
             }).ToList();
 
             var respuesta = updates.ToChatResponse();
