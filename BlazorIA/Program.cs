@@ -25,7 +25,7 @@ builder.Services.AddKeyedScoped<IChatBot, ChatBotReal>("chat");
 builder.Services.AddKeyedScoped<IChatBot, ChatBotRag>("chat-rag");
 
 builder.Services.AddSingleton<ServicioDocumentosEnMemoria>();
-builder.Services.AddSingleton<IServicioRag, ServicioRagMemoria>();
+builder.Services.AddSingleton<IServicioRag, ServicioRagAzureSearch>();
 builder.Services.AddSingleton<InMemoryVectorStore>();
 
 builder.Services.AddSingleton<ServicioIndiceRagAzureSearch>();
