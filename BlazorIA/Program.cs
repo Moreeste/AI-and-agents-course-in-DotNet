@@ -31,6 +31,8 @@ builder.Services.AddSingleton<InMemoryVectorStore>();
 builder.Services.AddSingleton<ServicioIndiceRagAzureSearch>();
 builder.Services.AddScoped<IVectorStore, VectorStoreClienteAzureSearch>();
 
+builder.Services.AddTransient<IRepositorioMarkdown, RepositorioMarkdownLocal>();
+
 builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();

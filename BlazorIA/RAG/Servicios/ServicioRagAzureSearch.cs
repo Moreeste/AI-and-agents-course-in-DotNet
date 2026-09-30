@@ -22,7 +22,7 @@ namespace BlazorIA.RAG.Servicios
             searchClient = new SearchClient(new Uri(endpoint), indexName, new AzureKeyCredential(apiKey));
         }
 
-        public async Task<List<string>> BuscarContextoRelevante(string pregunta, int top = 3, float scoreMinimo = 0.6F, CancellationToken cancellationToken = default)
+        public async Task<List<ResultadoBusquedaRag>> BuscarContextoRelevante(string pregunta, int top = 3, float scoreMinimo = 0.6F, CancellationToken cancellationToken = default)
         {
             var embeddingPregunta = await embeddingGenerator.GenerateVectorAsync(pregunta, cancellationToken: cancellationToken);
 
@@ -55,7 +55,7 @@ namespace BlazorIA.RAG.Servicios
 
             var response = await searchClient.SearchAsync<DocumentoRag>(null, options, cancellationToken);
 
-            var resultados = new List<string>();
+            var resultados = new List<ResultadoBusquedaRag>();
 
             await foreach (var item in response.Value.GetResultsAsync())
             {
@@ -64,11 +64,7 @@ namespace BlazorIA.RAG.Servicios
                     continue;
                 }
 
-                resultados.Add(
-                    $"""
-                    Documento: {item.Document.TituloDocumento}
-                    Contenido: {item.Document.Texto}
-                    """);
+                resultados.Add(new ResultadoBusquedaRag(item.Document.TituloDocumento, item.Document.Texto));
             }
 
             return resultados;

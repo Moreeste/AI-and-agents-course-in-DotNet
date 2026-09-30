@@ -122,3 +122,50 @@
         opacity: 1;
     }
 }
+
+.mensaje-citas {
+    margin-top: 0.75rem;
+    border-top: 1px solid #ddd;
+    padding-top: 0.75rem;
+}
+
+.citas-titulo {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #555;
+}
+
+.citas-lista {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.cita-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background-color: #fff;
+    border: 1px solid #dcdcdc;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    min-width: 220px;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+    .cita-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        transform: translateY(-1px);
+    }
+
+.cita-card-titulo {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    word-break: break-word;
+}
+
+.cita-card-subtitulo {
+    font-size: 0.85rem;
+    color: #666;
+}

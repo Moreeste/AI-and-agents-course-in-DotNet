@@ -168,6 +168,11 @@ namespace BlazorIA.RAG.ChatBots
                 }
             }
 
+            Conversacion[^1].ArchivosCitados = contexto.Select(x => new ArchivoCitado
+            {
+                NombreArchivo = x.TituloDocumento
+            }).ToList();
+
             var respuesta = updates.ToChatResponse();
             mensajes.AddMessages(respuesta);
 

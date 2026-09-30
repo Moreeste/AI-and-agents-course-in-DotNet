@@ -29,6 +29,25 @@
                         @mensaje.Texto
                     }
                 </div>
+
+                @if (mensaje.ArchivosCitados.Any())
+                {
+                    <div class="mensaje-citas">
+                        <div class="citas-titulo">Fuentes</div>
+
+                        <div class="citas-lista">
+                            @foreach (var archivo in mensaje.ArchivosCitados.DistinctBy(x => x.NombreArchivo))
+                            {
+                                <a class="cita-card"
+                                   href="@($"/documentos/{Uri.EscapeDataString(archivo.NombreArchivo)}")">
+                                    <div class="cita-card-titulo">@archivo.NombreArchivo</div>
+                                    <div class="cita-card-subtitulo">Ver documento</div>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+
             </div>
         }
 

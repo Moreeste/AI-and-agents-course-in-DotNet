@@ -22,13 +22,13 @@ namespace BlazorIA.RAG.Servicios
             collection = vectorStore.GetCollection<Guid, FragmentoDocumentoVector>("documentos");
         }
 
-        public async Task<List<string>> BuscarContextoRelevante(string pregunta, int top = 3, float scoreMinimo = 0.6f, CancellationToken cancellationToken = default)
+        public async Task<List<ResultadoBusquedaRag>> BuscarContextoRelevante(string pregunta, int top = 3, float scoreMinimo = 0.6f, CancellationToken cancellationToken = default)
         {
             await Inicializar(cancellationToken);
 
             var preguntaEmbedding = await embeddingGenerator.GenerateVectorAsync(pregunta, cancellationToken: cancellationToken);
 
-            var resultados = new List<string>();
+            var resultados = new List<ResultadoBusquedaRag>();
 
             await foreach (var resultado in collection.SearchAsync(preguntaEmbedding, top: top, cancellationToken: cancellationToken))
             {
@@ -37,10 +37,7 @@ namespace BlazorIA.RAG.Servicios
                     continue;
                 }
 
-                resultados.Add($"""
-                    Documento: {resultado.Record.TituloDocumento}
-                    Contenido: {resultado.Record.Texto}
-                    """);
+                resultados.Add(new ResultadoBusquedaRag(resultado.Record.TituloDocumento, resultado.Record.Texto));
             }
 
             return resultados;
