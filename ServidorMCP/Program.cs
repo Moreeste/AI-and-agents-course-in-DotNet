@@ -7,7 +7,8 @@ builder.Services.AddSingleton<IRepositorioPersonas, RepositorioPersonasMemoria>(
 builder.Services.AddMcpServer()
                 .WithHttpTransport()
                 .WithToolsFromAssembly()
-                .WithPromptsFromAssembly();
+                .WithPromptsFromAssembly()
+                .WithResourcesFromAssembly();
 
 builder.Services.AddCors(options =>
 {
