@@ -2,6 +2,8 @@ using ServidorMCP.Servicios;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddControllers();
+
 builder.Services.AddSingleton<IRepositorioPersonas, RepositorioPersonasMemoria>();
 
 builder.Services.AddMcpServer()
@@ -25,5 +27,7 @@ var app = builder.Build();
 app.UseCors();
 
 app.MapMcp("/mcp");
+
+app.MapControllers();
 
 app.Run();
