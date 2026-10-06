@@ -8,6 +8,7 @@ using BlazorIA.Utilidades;
 using CommunityToolkit.VectorData.InMemory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
+using OllamaSharp;
 using OpenAI.Embeddings;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,11 +37,11 @@ builder.Services.AddTransient<IRepositorioMarkdown, RepositorioMarkdownLocal>();
 builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
-    var apikey = configuration["OpenAI_Key"];
-    var modeloEmbedding = configuration["Embedding_Model"];
+    var urlOllama = configuration["Ollama_Url"]!;
+    var modeloEmbedding = configuration["Embedding_Model"]!;
 
-    var cliente = new EmbeddingClient(modeloEmbedding, apikey);
-    return cliente.AsIEmbeddingGenerator();
+    var cliente = new OllamaApiClient(urlOllama, modeloEmbedding);
+    return cliente;
 });
 
 builder.Services.AddTransient<IServicioClima, ServicioClimaOpenWeather>();

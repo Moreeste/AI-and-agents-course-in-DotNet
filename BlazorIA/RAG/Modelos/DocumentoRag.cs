@@ -16,7 +16,8 @@ namespace BlazorIA.RAG.Modelos
         [SimpleField(IsFilterable = true)]
         public int NumeroFragmento { get; set; }
 
-        [VectorSearchField(VectorSearchDimensions = 1536, VectorSearchProfileName = "perfil-vector")]
+        //[VectorSearchField(VectorSearchDimensions = 1536, VectorSearchProfileName = "perfil-vector")]
+        [VectorSearchField(VectorSearchDimensions = 1024, VectorSearchProfileName = "perfil-vector")]
         public float[] Embedding { get; set; } = null!;
     }
 }
