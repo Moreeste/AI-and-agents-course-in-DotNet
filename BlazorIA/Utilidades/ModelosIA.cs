@@ -2,10 +2,15 @@
 {
     public static class ModelosIA
     {
+        //private static readonly Dictionary<string, string> Modelos = new(StringComparer.OrdinalIgnoreCase)
+        //{
+        //    ["gpt-5.4-nano"] = "openai",
+        //    ["gpt-5.4"] = "openai"
+        //};
+
         private static readonly Dictionary<string, string> Modelos = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["gpt-5.4-nano"] = "openai",
-            ["gpt-5.4"] = "openai"
+            ["qwen3.5:2b"] = "ollama",
         };
 
         public static string ObtenerProveedor(string modelo)
@@ -18,6 +23,6 @@
         }
 
         public static IEnumerable<string> ObtenerModelosDispoibles() => Modelos.Keys;
-        public static string ObtenerModeloPorDefecto => "gpt-5.4-nano";
+        public static string ObtenerModeloPorDefecto => "qwen3.5:2b";
     }
 }
