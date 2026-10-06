@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OllamaSharp;
 
 namespace ChatBot
 {
@@ -25,6 +26,7 @@ namespace ChatBot
                 var cliente = proveedor switch
                 {
                     "openai" => new OpenAI.Chat.ChatClient(modelo ?? "gpt-5.4-nano", openAiKey).AsIChatClient(),
+                    "ollama" => new OllamaApiClient("http://localhost:11434", modelo ?? "qwen3.5:2b"),
                     _ => throw new ArgumentException($"Proveedor desconocido: {proveedor}"),
                 };
 

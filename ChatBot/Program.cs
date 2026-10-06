@@ -6,9 +6,12 @@ using Microsoft.Extensions.Hosting;
 
 Utilidades.CargarVariablesDeEntorno();
 
-var proveedor = args.Length > 0 ? args[0].ToLowerInvariant() : "openai";
-var modeloPorDefecto = proveedor == "openai" ? "gpt-5.4-nano" : "claude-haiku-4.5";
-var modelo = args.Length > 1 ? args[1] : modeloPorDefecto;
+//var proveedor = args.Length > 0 ? args[0].ToLowerInvariant() : "openai";
+//var modeloPorDefecto = proveedor == "openai" ? "gpt-5.4-nano" : "claude-haiku-4.5";
+//var modelo = args.Length > 1 ? args[1] : modeloPorDefecto;
+
+var proveedor = "ollama";
+var modelo = "qwen3.5:2b ";
 
 Console.WriteLine($"{proveedor}:{modelo}");
 
