@@ -1,8 +1,44 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿﻿@{
+    ViewData["Title"] = "Chat con IA";
+    ViewData["BodyClass"] = "chat-page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="chat-layout">
+    <aside class="chat-sidebar">
+        <button id="btnNuevoChat" class="btn btn-primary w-100 mb-3">
+            Nuevo chat
+        </button>
+
+        <div id="listaConversaciones" class="conversaciones"></div>
+    </aside>
+
+    <main class="chat-wrapper">
+        <h3 class="chat-titulo">Chat con IA</h3>
+
+        <div id="chatMensajes" class="chat-mensajes"></div>
+
+        <form id="formChat">
+            <input type="hidden" id="conversacionActualId" />
+
+            <div class="entrada-chat">
+                <input id="textoMensaje"
+                       class="form-control"
+                       placeholder="Escribe tu mensaje..."
+                       autocomplete="off" />
+
+                <button id="btnEnviar" type="submit" class="btn btn-primary">
+                    Enviar
+                </button>
+
+                <button id="btnCancelar"
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        disabled>
+                    Cancelar
+                </button>
+            </div>
+
+        </form>
+    </main>
+
 </div>
