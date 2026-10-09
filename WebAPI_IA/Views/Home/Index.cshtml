@@ -1,6 +1,6 @@
 ﻿﻿@{
-    ViewData["Title"] = "Chat con IA";
-    ViewData["BodyClass"] = "chat-page";
+ViewData["Title"] = "Chat con IA";
+ViewData["BodyClass"] = "chat-page";
 }
 
 <div class="chat-layout">
@@ -42,3 +42,99 @@
     </main>
 
 </div>
+
+@section Scripts {
+    <script>
+        const formChat = document.getElementById('formChat');
+        const textoMensaje = document.getElementById('textoMensaje');
+        const chatMensajes = document.getElementById('chatMensajes');
+        const conversacionActualId = document.getElementById('conversacionActualId');
+
+        formChat.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const texto = textoMensaje.value.trim();
+            if (!texto) {
+                return;
+            }
+
+            textoMensaje.value = '';
+            agregarMensaje('Usuario', texto);
+            const mensajeIA = agregarMensaje('IA', '');
+            const cuerpoMensajeIA = mensajeIA.querySelector('.mensaje-body');
+
+            try {
+                const response = await fetch('/api/Chat/Enviar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        conversacionId: null,
+                        texto
+                    })
+                });
+
+                if (!response.ok || !response.body) {
+                    cuerpoMensajeIA.textContent = 'No se pudo obtener la respuesta de la IA.';
+                    return;
+                }
+
+                var respuesta = await response.text();
+                cuerpoMensajeIA.textContent = respuesta;
+            }
+            catch (error) {
+                if (error.name === "AbortError") {
+                    return;
+                }
+                throw error;
+            }
+            finally {
+
+            }
+
+        });
+
+        function agregarMensaje(rol, texto) {
+            const div = document.createElement('div');
+            div.className = `mensaje ${obtenerClaseCss(rol)}`;
+            div.innerHTML = `
+                <div class="mensaje-header">${obtenerEtiqueta(rol)}</div>
+                <div class="mensaje-body"></div>`;
+
+            div.querySelector('.mensaje-body').textContent = texto;
+            chatMensajes.appendChild(div);
+            scrollAbajo();
+            return div;
+        }
+
+        function obtenerClaseCss(rol) {
+            switch (rol) {
+                case 'Usuario':
+                    return 'user';
+                case 'IA':
+                    return 'assistant';
+                case 'Sistema':
+                    return 'system';
+                default:
+                    return 'system';
+            }
+        }
+
+        function obtenerEtiqueta(rol) {
+            switch (rol) {
+                case 'Usuario':
+                    return 'Tú';
+                case 'IA':
+                    return 'IA';
+                case 'Sistema':
+                    return 'Sistema';
+                default:
+                    return rol;
+            }
+        }
+
+        function scrollAbajo() {
+            chatMensajes.scrollTop = chatMensajes.scrollHeight;
+        }
+    </script>
+}
