@@ -213,6 +213,58 @@ namespace WebAPI_IA.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("WebAPI_IA.Entidades.ConversacionChat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("FechaActualizacionUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("FechaCreacionUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UsuarioId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("Conversaciones");
+                });
+
+            modelBuilder.Entity("WebAPI_IA.Entidades.MensajeChat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ConversacionChatId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Orden")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Rol")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversacionChatId");
+
+                    b.ToTable("Mensajes");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -262,6 +314,31 @@ namespace WebAPI_IA.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("WebAPI_IA.Entidades.ConversacionChat", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId");
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("WebAPI_IA.Entidades.MensajeChat", b =>
+                {
+                    b.HasOne("WebAPI_IA.Entidades.ConversacionChat", "Conversacion")
+                        .WithMany("Mensajes")
+                        .HasForeignKey("ConversacionChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Conversacion");
+                });
+
+            modelBuilder.Entity("WebAPI_IA.Entidades.ConversacionChat", b =>
+                {
+                    b.Navigation("Mensajes");
                 });
 #pragma warning restore 612, 618
         }
