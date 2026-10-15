@@ -50,6 +50,23 @@ ViewData["BodyClass"] = "chat-page";
         const chatMensajes = document.getElementById('chatMensajes');
         const conversacionActualId = document.getElementById('conversacionActualId');
 
+        document.addEventListener("DOMContentLoaded", async () => {
+            await crearNuevoChat();
+        })
+
+        async function crearNuevoChat() {
+            const response = await fetch('/api/Chat/NuevoChat', {
+                method: "POST"
+            });
+
+            if (!response.ok){
+                console.error('No se pudo crear el nuevo chat');
+            }
+
+            const data = await response.json();
+            conversacionActualId.value = data.id;
+        }
+
         formChat.addEventListener('submit', async (e) => {
             e.preventDefault();
             const texto = textoMensaje.value.trim();
@@ -69,7 +86,7 @@ ViewData["BodyClass"] = "chat-page";
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        conversacionId: null,
+                        conversacionId: conversacionActualId.value,
                         texto
                     })
                 });
