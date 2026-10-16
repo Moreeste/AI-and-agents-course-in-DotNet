@@ -49,14 +49,60 @@ ViewData["BodyClass"] = "chat-page";
         const textoMensaje = document.getElementById('textoMensaje');
         const chatMensajes = document.getElementById('chatMensajes');
         const conversacionActualId = document.getElementById('conversacionActualId');
+        const listaConversaciones = document.getElementById('listaConversaciones');
 
         document.addEventListener("DOMContentLoaded", async () => {
-            await crearNuevoChat();
+            await cargarConversaciones();
+
+            const primeraConversacion = document.querySelector('[data-conversacion-id]');
+
+            console.log('Primera conversación:', primeraConversacion);
+
+            if (primeraConversacion) {
+                const id = primeraConversacion.dataset.conversacionId;
+                conversacionActualId.value = id;
+            } else {
+                await crearNuevoChat();
+            }
         })
+
+        async function cargarConversaciones() {
+            const response = await fetch("/api/Chat/ObtenerConversaciones");
+
+           const conversaciones = await response.json();
+           listaConversaciones.innerHTML = "";
+
+           for (const conversacion of conversaciones){
+               const fila = document.createElement("div");
+               fila.className = "conversacion-fila";
+
+               const button = document.createElement("button");
+               button.type = "button";
+               button.className = "conversacion-item";
+               button.dataset.conversacionId = conversacion.id;
+               button.textContent = conversacion.titulo;
+
+               if (conversacion.id === conversacionActualId.value) {
+                     button.classList.add("activa");
+               }
+
+               const botonBorrar = document.createElement("button");
+               botonBorrar.type = "button";
+               botonBorrar.className = "conversacion-borrar";
+               botonBorrar.dataset.borrarConversacionId = conversacion.id;
+               botonBorrar.textContent = "x";
+
+               fila.appendChild(button);
+               fila.appendChild(botonBorrar);
+               listaConversaciones.appendChild(fila);
+           }
+
+           return conversaciones;
+        }
 
         async function crearNuevoChat() {
             const response = await fetch('/api/Chat/NuevoChat', {
-                method: "POST"
+                method: 'POST'
             });
 
             if (!response.ok){
@@ -66,6 +112,10 @@ ViewData["BodyClass"] = "chat-page";
             const data = await response.json();
             conversacionActualId.value = data.id;
         }
+
+        btnNuevoChat.addEventListener('click', async () => {
+            await crearNuevoChat();
+        });
 
         formChat.addEventListener('submit', async (e) => {
             e.preventDefault();

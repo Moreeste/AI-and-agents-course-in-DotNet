@@ -15,6 +15,29 @@ namespace WebAPI_IA.Controllers
     [Authorize]
     public class ChatController(IChatClientFactory chatClientFactory, ChatOptions chatOptions, ApplicationDbContext context) : ControllerBase
     {
+        [HttpGet("ObtenerConversaciones")]
+        public async Task<ActionResult<List<ConversacionResumenDTO>>> ObtenerConversaciones()
+        {
+            var usuarioId = ObtenerUsuarioId();
+
+            if (usuarioId is null)
+            {
+                return Unauthorized();
+            }
+
+            var conversaciones = await context.Conversaciones
+                .Where(x => x.UsuarioId == usuarioId)
+                .OrderByDescending(x => x.FechaActualizacionUtc)
+                .Select(x => new ConversacionResumenDTO
+                {
+                    Id = x.Id,
+                    Titulo = x.Titulo
+                })
+                .ToListAsync();
+
+            return conversaciones;
+        }
+
         [HttpPost("NuevoChat")]
         public async Task<IActionResult> NuevoChat()
         {
