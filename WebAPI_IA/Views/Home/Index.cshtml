@@ -116,11 +116,46 @@ ViewData["BodyClass"] = "chat-page";
             marcarConversacionActiva(data.id);
         }
 
+        async function borrarConversacion(id) {
+            if (!confirm('¿Estás seguro de que quieres borrar esta conversación?')) {
+                return;
+            }
+
+            const response = await fetch('/api/Chat/BorrarConversacion', {
+                method: 'post',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(id)
+            });
+
+            const conversaciones = await cargarConversaciones();
+            const eraConversacionActiva = id === conversacionActualId.value;
+
+            if (!eraConversacionActiva) {
+                marcarConversacionActiva(conversacionActualId.value);
+                return;
+            }
+
+            if (conversaciones.length > 0) {
+                const primeraConversacion = conversaciones[0];
+                conversacionActualId.value = primeraConversacion.id;
+                await cargarConversacion(primeraConversacion.id);
+                marcarConversacionActiva(primeraConversacion.id);
+                return;
+            }
+
+            chatMensajes.innerHTML = '';
+            conversacionActualId.value = '';
+            await crearNuevoChat();
+        }
+
         listaConversaciones.addEventListener("click", async e => {
         
             const botonBorrar = e.target.closest('[data-borrar-conversacion-id]');
         
             if (botonBorrar){
+                await borrarConversacion(botonBorrar.dataset.borrarConversacionId);
                 return;
             }
 

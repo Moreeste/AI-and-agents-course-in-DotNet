@@ -144,6 +144,27 @@ namespace WebAPI_IA.Controllers
             return respuestaIA;
         }
 
+        [HttpPost("BorrarConversacion")]
+        public async Task<IActionResult> BorrarConversacion([FromBody] Guid id)
+        {
+            var usuarioId = ObtenerUsuarioId();
+
+            if (usuarioId is null)
+            {
+                return Unauthorized();
+            }
+
+            var conversacionesBorradas = await context.Conversaciones
+                .Where(x => x.Id == id).ExecuteDeleteAsync();
+
+            if (conversacionesBorradas == 0)
+            {
+                return NotFound();
+            }
+
+            return NoContent();
+        }
+
         private async Task GuardarMensajes(Guid conversacionId, string usuarioId, List<MensajeChatUI> mensajes)
         {
             var conversacion = await context.Conversaciones
