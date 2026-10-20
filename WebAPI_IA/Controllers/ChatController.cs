@@ -38,6 +38,38 @@ namespace WebAPI_IA.Controllers
             return conversaciones;
         }
 
+        [HttpGet("ObtenerConversacion")]
+        public async Task<ActionResult<ConversacionDTO>> ObtenerConversacion(Guid id)
+        {
+            var usuarioId = ObtenerUsuarioId();
+
+            if (usuarioId is null)
+            {
+                return Unauthorized();
+            }
+            var conversacionDb = await context.Conversaciones
+                .Include(x => x.Mensajes.OrderBy(x => x.Orden))
+                .FirstOrDefaultAsync(x => x.Id == id && x.UsuarioId == usuarioId);
+
+            if (conversacionDb is null)
+            {
+                return NotFound();
+            }
+
+            var conversacion = new ConversacionDTO
+            {
+                Id = id,
+                Mensajes = conversacionDb.Mensajes
+                .Select(x => new MensajeChatUI
+                {
+                    Rol = x.Rol,
+                    Texto = x.Texto
+                }).ToList()
+            };
+
+            return conversacion;
+        }
+
         [HttpPost("NuevoChat")]
         public async Task<IActionResult> NuevoChat()
         {

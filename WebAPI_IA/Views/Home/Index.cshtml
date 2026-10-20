@@ -56,11 +56,11 @@ ViewData["BodyClass"] = "chat-page";
 
             const primeraConversacion = document.querySelector('[data-conversacion-id]');
 
-            console.log('Primera conversación:', primeraConversacion);
-
             if (primeraConversacion) {
                 const id = primeraConversacion.dataset.conversacionId;
                 conversacionActualId.value = id;
+                cargarConversacion(id);
+                marcarConversacionActiva(id);
             } else {
                 await crearNuevoChat();
             }
@@ -111,11 +111,53 @@ ViewData["BodyClass"] = "chat-page";
 
             const data = await response.json();
             conversacionActualId.value = data.id;
+            await cargarConversaciones();
+            await cargarConversacion(data.id);
+            marcarConversacionActiva(data.id);
         }
+
+        listaConversaciones.addEventListener("click", async e => {
+        
+            const botonBorrar = e.target.closest('[data-borrar-conversacion-id]');
+        
+            if (botonBorrar){
+                return;
+            }
+
+            const boton = e.target.closest('[data-conversacion-id]');
+
+            if (!boton){
+                return;
+            }
+
+            const id = boton.dataset.conversacionId;
+            conversacionActualId.value = id;
+
+            await cargarConversacion(id);
+            marcarConversacionActiva(id);
+        });
 
         btnNuevoChat.addEventListener('click', async () => {
             await crearNuevoChat();
         });
+
+        async function cargarConversacion(id) {
+            const response = await fetch(`/api/Chat/ObtenerConversacion?id=${id}`);
+            const data = await response.json();
+            chatMensajes.innerHTML = '';
+
+            for (const mensaje of data.mensajes) {
+                agregarMensaje(mensaje.rol, mensaje.texto);
+            }
+
+            scrollAbajo();
+        }
+
+        function marcarConversacionActiva(id) {
+            document.querySelectorAll('.conversacion-item').forEach(item => {
+                item.classList.toggle("activa", item.dataset.conversacionId === id);
+            });
+        }
 
         formChat.addEventListener('submit', async (e) => {
             e.preventDefault();
