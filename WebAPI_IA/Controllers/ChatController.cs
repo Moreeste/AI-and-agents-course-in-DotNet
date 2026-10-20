@@ -193,6 +193,7 @@ namespace WebAPI_IA.Controllers
             }
 
             conversacion.FechaActualizacionUtc = DateTime.UtcNow;
+            conversacion.Titulo = ObtenerTitulo(conversacion.Titulo, mensajes);
             await context.SaveChangesAsync();
         }
 
@@ -215,6 +216,23 @@ namespace WebAPI_IA.Controllers
         private string? ObtenerUsuarioId()
         {
             return User.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+
+        private static string ObtenerTitulo(string tituloActual, IEnumerable<MensajeChatUI> mensajes)
+        {
+            if (tituloActual != "Nuevo chat")
+            {
+                return tituloActual;
+            }
+
+            var primerMensajeUsuario = mensajes.FirstOrDefault(x => x.Rol == RolMensaje.Usuario)?.Texto.Trim();
+
+            if (string.IsNullOrWhiteSpace(primerMensajeUsuario))
+            {
+                return tituloActual;
+            }
+
+            return primerMensajeUsuario.Length <= 60 ? primerMensajeUsuario : primerMensajeUsuario[..60] + "...";
         }
     }
 }

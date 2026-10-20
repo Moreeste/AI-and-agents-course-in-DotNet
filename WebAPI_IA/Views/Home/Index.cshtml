@@ -225,6 +225,9 @@ ViewData["BodyClass"] = "chat-page";
 
                 var respuesta = await response.text();
                 cuerpoMensajeIA.textContent = respuesta;
+
+                await cargarConversaciones();
+                marcarConversacionActiva(conversacionActualId.value);
             }
             catch (error) {
                 if (error.name === "AbortError") {
