@@ -122,7 +122,7 @@ ViewData["BodyClass"] = "chat-page";
             }
 
             const response = await fetch('/api/Chat/BorrarConversacion', {
-                method: 'post',
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -223,8 +223,10 @@ ViewData["BodyClass"] = "chat-page";
                     return;
                 }
 
-                var respuesta = await response.text();
-                cuerpoMensajeIA.textContent = respuesta;
+                await leerRespuestaStream(response, texto => {
+                    cuerpoMensajeIA.textContent += texto;
+                    scrollAbajo();
+                });
 
                 await cargarConversaciones();
                 marcarConversacionActiva(conversacionActualId.value);
@@ -240,6 +242,61 @@ ViewData["BodyClass"] = "chat-page";
             }
 
         });
+
+        async function leerRespuestaStream(response, onDelta) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while(true){
+                const { value, done } = await reader.read();
+
+                if (done) {
+                    break;
+                }
+
+                buffer += decoder.decode(value, { stream: true });
+                const lineas = buffer.split('\n');
+                buffer = lineas.pop() ?? '';
+
+                for (const linea of lineas) {
+                    procesarEventoStream(linea, onDelta);
+                }
+            }
+
+            buffer += decoder.decode();
+
+            if (buffer.trim()) {
+                procesarEventoStream(buffer, onDelta);
+            }
+        }
+
+        function procesarEventoStream(linea, onDelta) {
+            if (!linea.trim()) {
+                return;
+            }
+
+            const evento = JSON.parse(linea);
+
+            if (evento.tipo === 'iniciar_conversacion') {
+                conversacionActualId.value = evento.datos.id;
+                return;
+            }
+
+            if (evento.tipo === 'delta') {
+                onDelta(evento.datos.texto ?? '');
+                return;
+            }
+
+            if (evento.tipo === 'error') {
+                agregarMensaje('Sistema', evento.datos.mensaje ?? 'Ocurrió un error al procesar la respuesta.');
+                return;
+            }
+
+            if (evento.tipo === 'aprobacion_requerida') {
+                return;
+            }
+        }
 
         function agregarMensaje(rol, texto) {
             const div = document.createElement('div');

@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using System.Security.Claims;
+using System.Text.Json;
 using WebAPI_IA.Data;
 using WebAPI_IA.DTOs;
 using WebAPI_IA.Entidades;
 using WebAPI_IA.Servicios.Chatbots;
+using WebAPI_IA.Utilidades;
 
 namespace WebAPI_IA.Controllers
 {
@@ -97,18 +99,22 @@ namespace WebAPI_IA.Controllers
         }
 
         [HttpPost("Enviar")]
-        public async Task<ActionResult<string>> Enviar([FromBody] EnviarMensajeDTO dto)
+        public async Task Enviar([FromBody] EnviarMensajeDTO dto)
         {
             var usuarioId = ObtenerUsuarioId();
 
             if (usuarioId is null)
             {
-                return "Debes iniciar sesión";
+                Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await EscribirEventoStream(EventoStream.error, new { mensaje = "Debes iniciar sesión" });
+                return;
             }
 
             if (dto.ConversacionId is null)
             {
-                return "Debes enviar el Id de la conversación";
+                Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await EscribirEventoStream(EventoStream.error, new { mensaje = "Debes enviar el Id de la conversación" });
+                return;
             }
 
             var id = dto.ConversacionId.Value;
@@ -117,17 +123,23 @@ namespace WebAPI_IA.Controllers
 
             if (!conversacionDbExiste)
             {
-                return "La conversación no existe";
+                Response.StatusCode = StatusCodes.Status404NotFound;
+                await EscribirEventoStream(EventoStream.error, new { mensaje = "La conversación no existe" });
+                return;
             }
 
+            Response.ContentType = "application/x-ndjson";
+            Response.Headers.CacheControl = "no-cache";
+
             var chatbot = await CrearChatbot(id, usuarioId);
-            var respuestaIA = string.Empty;
+            
+            await EscribirEventoStream(EventoStream.iniciar_conversacion, new { id });
 
             try
             {
                 await chatbot.EnviarMensajesStreamAsync(dto.Texto, async delta =>
                 {
-
+                    await EscribirEventoStream(EventoStream.delta, new { texto = delta });
                 }, HttpContext.RequestAborted);
 
                 await GuardarMensajes(id, usuarioId, chatbot.Conversacion);
@@ -136,12 +148,6 @@ namespace WebAPI_IA.Controllers
             {
 
             }
-            finally
-            {
-                respuestaIA = chatbot.Conversacion[^1].Texto;
-            }
-
-            return respuestaIA;
         }
 
         [HttpPost("BorrarConversacion")]
@@ -195,6 +201,18 @@ namespace WebAPI_IA.Controllers
             conversacion.FechaActualizacionUtc = DateTime.UtcNow;
             conversacion.Titulo = ObtenerTitulo(conversacion.Titulo, mensajes);
             await context.SaveChangesAsync();
+        }
+
+        private async Task EscribirEventoStream(EventoStream tipo, object datos)
+        {
+            var evento = JsonSerializer.Serialize(new
+            {
+                tipo = tipo.ToString(),
+                datos
+            });
+
+            await Response.WriteAsync(evento + "\n");
+            await Response.Body.FlushAsync();
         }
 
         private async Task<ChatBotReal> CrearChatbot(Guid conversacionId, string usuarioId)
