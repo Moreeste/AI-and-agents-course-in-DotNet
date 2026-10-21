@@ -50,6 +50,7 @@ ViewData["BodyClass"] = "chat-page";
         const chatMensajes = document.getElementById('chatMensajes');
         const conversacionActualId = document.getElementById('conversacionActualId');
         const listaConversaciones = document.getElementById('listaConversaciones');
+        let abortControllerActual = null;
 
         document.addEventListener("DOMContentLoaded", async () => {
             await cargarConversaciones();
@@ -206,6 +207,11 @@ ViewData["BodyClass"] = "chat-page";
             const mensajeIA = agregarMensaje('IA', '');
             const cuerpoMensajeIA = mensajeIA.querySelector('.mensaje-body');
 
+            const abortController = new AbortController();
+            abortControllerActual = abortController;
+
+            configurarControlesProcesando(true);
+
             try {
                 const response = await fetch('/api/Chat/Enviar', {
                     method: 'POST',
@@ -215,7 +221,8 @@ ViewData["BodyClass"] = "chat-page";
                     body: JSON.stringify({
                         conversacionId: conversacionActualId.value,
                         texto
-                    })
+                    }),
+                    signal: abortController.signal
                 });
 
                 if (!response.ok || !response.body) {
@@ -233,14 +240,27 @@ ViewData["BodyClass"] = "chat-page";
             }
             catch (error) {
                 if (error.name === "AbortError") {
+                    marcarRespuestaCancelada(cuerpoMensajeIA);
                     return;
                 }
                 throw error;
             }
             finally {
-
+                configurarControlesProcesando(false);
             }
 
+        });
+
+        function marcarRespuestaCancelada(cuerpoMensajeIa) {
+            const textoActual = cuerpoMensajeIa.textContent.trim();
+
+            cuerpoMensajeIa.textContent = textoActual ? `${textoActual} [cancelado]` : '[Respuesta cancelada]';
+
+            scrollAbajo();
+        }
+
+        btnCancelar.addEventListener("click", () => {
+            abortControllerActual?.abort();
         });
 
         async function leerRespuestaStream(response, onDelta) {
@@ -339,6 +359,12 @@ ViewData["BodyClass"] = "chat-page";
 
         function scrollAbajo() {
             chatMensajes.scrollTop = chatMensajes.scrollHeight;
+        }
+
+        function configurarControlesProcesando(estaProcesando) {
+            btnCancelar.disabled = !estaProcesando;
+            btnEnviar.disabled = estaProcesando;
+            textoMensaje.disabled = estaProcesando;
         }
     </script>
 }

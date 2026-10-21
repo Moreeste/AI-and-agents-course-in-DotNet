@@ -146,7 +146,7 @@ namespace WebAPI_IA.Controllers
             }
             catch (OperationCanceledException)
             {
-
+                await GuardarMensajes(id, usuarioId, chatbot.Conversacion);
             }
         }
 
