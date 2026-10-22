@@ -143,6 +143,19 @@ namespace WebAPI_IA.Controllers
                 }, HttpContext.RequestAborted);
 
                 await GuardarMensajes(id, usuarioId, chatbot.Conversacion);
+                
+                if (chatbot.SolicitudesAprobacionGeneradas.Any())
+                {
+                    await PersistirSolicitudesAprobacion(id, chatbot.SolicitudesAprobacionGeneradas);
+                    var aprobacionPendiente = await ObtenerAprobacionPendiente(id, usuarioId);
+                    var aprobacionPendienteDTO = aprobacionPendiente!.ADTO();
+
+                    await EscribirEventoStream(EventoStream.aprobacion_requerida, new
+                    {
+                        nombreTool = aprobacionPendienteDTO.NombreTool,
+                        argumentos = aprobacionPendienteDTO.Argumentos
+                    });
+                }
             }
             catch (OperationCanceledException)
             {
@@ -200,6 +213,55 @@ namespace WebAPI_IA.Controllers
 
             conversacion.FechaActualizacionUtc = DateTime.UtcNow;
             conversacion.Titulo = ObtenerTitulo(conversacion.Titulo, mensajes);
+            await context.SaveChangesAsync();
+        }
+
+        private async Task<SolicitudAprobacionChat?> ObtenerAprobacionPendiente(Guid conversacionId, string usuarioId)
+        {
+            return await context.SolicitudesAprobacion
+                    .Where(x =>
+                        x.ConversacionChatId == conversacionId &&
+                        x.Conversacion.UsuarioId == usuarioId &&
+                        x.Estado == EstadoSolicitudAprobacionChat.Pendiente)
+                    .OrderBy(x => x.Orden)
+                    .FirstOrDefaultAsync();
+        }
+
+        private async Task PersistirSolicitudesAprobacion(Guid conversacionId, List<ToolApprovalRequestContent> solicitudes)
+        {
+            var orden = -1;
+            var existenAprobaciones = await context.SolicitudesAprobacion.AnyAsync(x => x.ConversacionChatId == conversacionId);
+
+            if (existenAprobaciones)
+            {
+                orden = await context.SolicitudesAprobacion.Where(x => x.ConversacionChatId == conversacionId)
+                    .Select(x => x.Orden).MaxAsync();
+            }
+
+            var ahora = DateTime.UtcNow;
+
+            foreach (var solicitud in solicitudes)
+            {
+                orden++;
+
+                if (solicitud.ToolCall is not FunctionCallContent functionCall)
+                {
+                    continue;
+                }
+
+                context.SolicitudesAprobacion.Add(new SolicitudAprobacionChat
+                {
+                    Id = Guid.NewGuid(),
+                    ConversacionChatId = conversacionId,
+                    Orden = orden,
+                    Estado = EstadoSolicitudAprobacionChat.Pendiente,
+                    NombreTool = ChatBotReal.ConvertirNombreDeFuncion(functionCall.Name),
+                    ArgumentosJson = JsonSerializer.Serialize(functionCall.Arguments, AIJsonUtilities.DefaultOptions),
+                    SolicitudJson = JsonSerializer.Serialize(solicitud, AIJsonUtilities.DefaultOptions),
+                    FechaCreacionUtc = ahora
+                });
+            }
+
             await context.SaveChangesAsync();
         }
 

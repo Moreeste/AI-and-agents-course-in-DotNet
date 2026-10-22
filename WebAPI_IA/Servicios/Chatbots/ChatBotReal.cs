@@ -80,6 +80,34 @@ namespace WebAPI_IA.Servicios.Chatbots
             }
         }
 
+        public async Task ResponderSolicitudesDeAprobacion(
+            IEnumerable<ToolApprovalRequestContent> solicitudesAprobacion,
+            IEnumerable<ToolApprovalResponseContent> respuestaAprobacion,
+            CancellationToken cancellationToken = default)
+        {
+            var solicitudes = solicitudesAprobacion.Cast<AIContent>().ToList();
+            var respuestas = respuestaAprobacion.Cast<AIContent>().ToList();
+
+            try
+            {
+                mensajes.Add(new ChatMessage(ChatRole.Assistant, solicitudes));
+                mensajes.Add(new ChatMessage(ChatRole.User, respuestas));
+
+                Conversacion.Add(new MensajeChatUI
+                {
+                    Rol = RolMensaje.IA,
+                    Texto = string.Empty
+                });
+
+                await ProcesarRespuesta(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                ManejarOperacionCancelada();
+                throw;
+            }
+        }
+
         private async Task ProcesarRespuesta(CancellationToken cancellationToken, Func<string, Task>? onDelta = null)
         {
             var updates = new List<ChatResponseUpdate>();
@@ -127,6 +155,15 @@ namespace WebAPI_IA.Servicios.Chatbots
                     Conversacion[^1].Texto += " [cancelado]";
                 }
             }
+        }
+
+        public static string ConvertirNombreDeFuncion(string nombre)
+        {
+            return nombre switch
+            {
+                "EnviarCorreo" => "Enviar Correo",
+                _ => nombre
+            };
         }
     }
 }

@@ -8,5 +8,6 @@ namespace WebAPI_IA.Data
     {
         public DbSet<ConversacionChat> Conversaciones { get; set; }
         public DbSet<MensajeChat> Mensajes { get; set; }
+        public DbSet<SolicitudAprobacionChat> SolicitudesAprobacion { get; set; }
     }
 }

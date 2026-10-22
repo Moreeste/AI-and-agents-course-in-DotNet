@@ -265,6 +265,46 @@ namespace WebAPI_IA.Migrations
                     b.ToTable("Mensajes");
                 });
 
+            modelBuilder.Entity("WebAPI_IA.Entidades.SolicitudAprobacionChat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ArgumentosJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ConversacionChatId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("FechaCreacionUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("FechaResolucionUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NombreTool")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Orden")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SolicitudJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversacionChatId");
+
+                    b.ToTable("SolicitudesAprobacion");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -336,9 +376,22 @@ namespace WebAPI_IA.Migrations
                     b.Navigation("Conversacion");
                 });
 
+            modelBuilder.Entity("WebAPI_IA.Entidades.SolicitudAprobacionChat", b =>
+                {
+                    b.HasOne("WebAPI_IA.Entidades.ConversacionChat", "Conversacion")
+                        .WithMany("SolicitudesAprobacion")
+                        .HasForeignKey("ConversacionChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Conversacion");
+                });
+
             modelBuilder.Entity("WebAPI_IA.Entidades.ConversacionChat", b =>
                 {
                     b.Navigation("Mensajes");
+
+                    b.Navigation("SolicitudesAprobacion");
                 });
 #pragma warning restore 612, 618
         }

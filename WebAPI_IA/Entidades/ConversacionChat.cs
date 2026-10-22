@@ -11,5 +11,6 @@ namespace WebAPI_IA.Entidades
         public DateTime FechaCreacionUtc { get; set; }
         public DateTime FechaActualizacionUtc { get; set; }
         public List<MensajeChat> Mensajes { get; set; } = [];
+        public List<SolicitudAprobacionChat> SolicitudesAprobacion { get; set; } = [];
     }
 }

@@ -4,5 +4,6 @@
     {
         public Guid Id { get; set; }
         public List<MensajeChatUI> Mensajes { get; set; } = [];
+        public AprobacionPendienteDTO? AprobacionPendiente { get; set; }
     }
 }
