@@ -51,6 +51,7 @@ ViewData["BodyClass"] = "chat-page";
         const conversacionActualId = document.getElementById('conversacionActualId');
         const listaConversaciones = document.getElementById('listaConversaciones');
         let abortControllerActual = null;
+        let aprovacionPendienteActiva = false;
 
         document.addEventListener("DOMContentLoaded", async () => {
             await cargarConversaciones();
@@ -180,13 +181,20 @@ ViewData["BodyClass"] = "chat-page";
         async function cargarConversacion(id) {
             const response = await fetch(`/api/Chat/ObtenerConversacion?id=${id}`);
             const data = await response.json();
-            chatMensajes.innerHTML = '';
+            chatMensajes.innerHTML = "";
+            aprobacionPendienteActiva = false;
 
             for (const mensaje of data.mensajes) {
                 agregarMensaje(mensaje.rol, mensaje.texto);
             }
 
+            if (data.aprobacionPendiente) {
+                agregarAprobacion(data.aprobacionPendiente);
+            }
+
+            configurarControlesProcesando(false);
             scrollAbajo();
+
         }
 
         function marcarConversacionActiva(id) {
@@ -263,6 +271,59 @@ ViewData["BodyClass"] = "chat-page";
             abortControllerActual?.abort();
         });
 
+        function agregarAprobacion(aprobacion) {
+            aprobacionPendienteActiva = true;
+            const div = document.createElement("div");
+            div.className = "aprobacion-tool";
+
+            const argumentos = Object.entries(aprobacion.argumentos ?? {})
+                .map(([key, value]) => `<li><strong>${key}:</strong> ${value}</li>`)
+                .join("");
+
+            div.innerHTML = `
+                        <h4>La IA desea ejecutar una acción sensible</h4>
+                        <p><strong>Tool:</strong> ${aprobacion.nombreTool}</p>
+
+                        ${argumentos ? `<ul>${argumentos}</ul>` : ""}
+
+                        <div class="acciones-aprobacion">
+                            <button class="btn btn-success" data-aprobado="true">
+                                Aprobar
+                            </button>
+
+                            <button class="btn btn-danger" data-aprobado="false">
+                                Rechazar
+                            </button>
+                        </div>
+                    `;
+
+            div.querySelectorAll("[data-aprobado]").forEach(button => {
+                button.addEventListener("click", async () => {
+                    await resolverAprobacion(button.dataset.aprobado === "true");
+                });
+            });
+
+            chatMensajes.appendChild(div);
+            configurarControlesProcesando(false);
+            scrollAbajo();
+        }
+
+        async function resolverAprobacion(aprobado) {
+
+            await fetch("/api/Chat/ResolverAprobacion", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    conversacionId: conversacionActualId.value,
+                    aprobado
+                })
+            });
+
+            await cargarConversacion(conversacionActualId.value);
+        }
+
         async function leerRespuestaStream(response, onDelta) {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -313,7 +374,12 @@ ViewData["BodyClass"] = "chat-page";
                 return;
             }
 
-            if (evento.tipo === 'aprobacion_requerida') {
+            if (evento.tipo === "aprobacion_requerida") {
+                agregarAprobacion({
+                    nombreTool: evento.datos.nombreTool,
+                    argumentos: evento.datos.argumentos
+                });
+
                 return;
             }
         }
@@ -363,8 +429,8 @@ ViewData["BodyClass"] = "chat-page";
 
         function configurarControlesProcesando(estaProcesando) {
             btnCancelar.disabled = !estaProcesando;
-            btnEnviar.disabled = estaProcesando;
-            textoMensaje.disabled = estaProcesando;
+            btnEnviar.disabled = estaProcesando || aprobacionPendienteActiva;
+            textoMensaje.disabled = estaProcesando || aprobacionPendienteActiva;
         }
     </script>
 }
