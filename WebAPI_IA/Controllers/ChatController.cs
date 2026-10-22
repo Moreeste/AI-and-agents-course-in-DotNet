@@ -58,6 +58,8 @@ namespace WebAPI_IA.Controllers
                 return NotFound();
             }
 
+            var aprobacionPendiente = await ObtenerAprobacionPendiente(id, usuarioId);
+
             var conversacion = new ConversacionDTO
             {
                 Id = id,
@@ -66,7 +68,8 @@ namespace WebAPI_IA.Controllers
                 {
                     Rol = x.Rol,
                     Texto = x.Texto
-                }).ToList()
+                }).ToList(),
+                AprobacionPendiente = aprobacionPendiente?.ADTO()
             };
 
             return conversacion;
@@ -161,6 +164,90 @@ namespace WebAPI_IA.Controllers
             {
                 await GuardarMensajes(id, usuarioId, chatbot.Conversacion);
             }
+        }
+
+        [HttpPost("ResolverAprobacion")]
+        public async Task<IActionResult> ResolverAprobacion([FromBody] ResolverAprobacionDTO dto)
+        {
+            var usuarioId = ObtenerUsuarioId();
+
+            if (usuarioId is null)
+            {
+                return Unauthorized();
+            }
+
+            var conversacionDb = await context.Conversaciones.Include(x => x.Mensajes.OrderBy(x => x))
+                .FirstOrDefaultAsync(x => x.Id == dto.ConversacionId && x.UsuarioId == usuarioId);
+
+            if (conversacionDb is null)
+            {
+                return BadRequest("La conversación no existe");
+            }
+
+            var solicitud = await ObtenerAprobacionPendiente(dto.ConversacionId, usuarioId);
+
+            if (solicitud is null)
+            {
+                return BadRequest("La conversación no tiene una aprobación pendiente activa");
+            }
+
+            solicitud.Estado = dto.Aprobado ? EstadoSolicitudAprobacionChat.Aprobada : EstadoSolicitudAprobacionChat.Rechazada;
+            solicitud.FechaResolucionUtc = DateTime.UtcNow;
+            await context.SaveChangesAsync();
+
+            var mensajesChatUI = conversacionDb.Mensajes.Select(x => new MensajeChatUI
+            {
+                Rol = x.Rol,
+                Texto = x.Texto
+            }).ToList();
+
+            mensajesChatUI.Add(new MensajeChatUI
+            {
+                Rol = RolMensaje.Sistema,
+                Texto = dto.Aprobado ? "Acción aprobada por el usuario" : "Acción rechazada por el usuario"
+            });
+
+            await GuardarMensajes(dto.ConversacionId, usuarioId, mensajesChatUI);
+
+            var solicitudSiguiente = await ObtenerAprobacionPendiente(dto.ConversacionId, usuarioId);
+
+            if (solicitudSiguiente is not null)
+            {
+                return Ok();
+            }
+
+            var loteResuelto = await context.SolicitudesAprobacion.Where(x => 
+            x.ConversacionChatId == dto.ConversacionId &&
+            x.Conversacion.UsuarioId == usuarioId &&
+            (x.Estado == EstadoSolicitudAprobacionChat.Aprobada || x.Estado == EstadoSolicitudAprobacionChat.Rechazada))
+                .OrderBy(x => x.Orden).ToListAsync();
+
+            var solicitudes = loteResuelto.Select(x => 
+            JsonSerializer.Deserialize<ToolApprovalRequestContent>(x.SolicitudJson, AIJsonUtilities.DefaultOptions)).ToList();
+
+            var respuestas = new List<ToolApprovalResponseContent>();
+
+            for (int i = 0; i < solicitudes.Count; i++)
+            {
+                var solicitudActual = solicitudes[i];
+                var loteResueltoActual = loteResuelto[i];
+                var respuesta = solicitudActual!.CreateResponse(loteResueltoActual.Estado == EstadoSolicitudAprobacionChat.Aprobada,  null);
+                respuestas.Add(respuesta);
+            }
+
+            var chatbot = await CrearChatbot(dto.ConversacionId, usuarioId);
+            await chatbot.ResponderSolicitudesDeAprobacion(solicitudes!, respuestas, HttpContext.RequestAborted);
+
+            foreach (var item in loteResuelto)
+            {
+                item.Estado = EstadoSolicitudAprobacionChat.Completada;
+            }
+
+            await context.SaveChangesAsync();
+            await GuardarMensajes(dto.ConversacionId, usuarioId, chatbot.Conversacion);
+            await PersistirSolicitudesAprobacion(dto.ConversacionId, chatbot.SolicitudesAprobacionGeneradas);
+
+            return Ok();
         }
 
         [HttpPost("BorrarConversacion")]
